@@ -1,0 +1,1 @@
+It SHOULD build if you navigate to this folder in your command line and run `cmake -S ./ -B ./Build`
