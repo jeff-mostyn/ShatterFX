@@ -47,6 +47,7 @@ newSopOperator(OP_OperatorTable *table)
 // DECLARE PARAMETERS (arg1: internal, arg2: descriptive)
 
 static PRM_Name boundsName("bounds", "Voronoi Region Bounds");
+static PRM_Name cellSizeName("cellSize", "Voronoi Cell Size");
 
 
 // SET PARAMETER DEFAULTS
@@ -56,15 +57,17 @@ static PRM_Default boundsDefault[]{
 	PRM_Default(0.0),
 	PRM_Default(0.0)
 };
+static PRM_Default cellSizeDefault(1.0);
 
 // USE PARAM NAMES AND PARAMS TO INITIALIZE
 
 PRM_Template SOP_CVD::myTemplateList[] = {
 	PRM_Template(
-		PRM_FLT, // Declare a 3-float parameter
-		3,                          // Number of components
-		&boundsName,                // Parameter name
+		PRM_FLT,		// Declare a 3-float parameter
+		3,              // Number of components
+		&boundsName,    // Parameter name
 		boundsDefault),
+	PRM_Template(PRM_FLT, 1, &cellSizeName, &cellSizeDefault),
 
     PRM_Template()
 };
@@ -147,14 +150,23 @@ SOP_CVD::cookMySop(OP_Context &context)
 
 	UT_String grammar;
 	GRAMMAR(grammar, now);*/
+	float cellSize;
+	cellSize = CELL_SIZE(now);
+
 	vec3 bounds;
 	bounds = BOUNDS(now);
+	std::cout << "---------------------------------------------" << std::endl;
 
+	std::cout << "bounds" << std::endl;
 	std::cout << bounds[0] << ", " << bounds[1] << ", " << bounds[2] << std::endl;
 
 	// PROCESS DATA HERE
 
+	vec3 noiseVal = GeneratePerlinNoise(bounds);
+	std::cout << "noise" << std::endl;
+	std::cout << noiseVal[0] << ", " << noiseVal[1] << ", " << noiseVal[2] << std::endl;
 
+	std::cout << "---------------------------------------------" << std::endl;
 	// DRAW GEOMETRY
     float		 rad, tx, ty, tz;
     int			 divisions, plane;
@@ -181,5 +193,44 @@ SOP_CVD::cookMySop(OP_Context &context)
     }
 
     return error();
+}
+
+void SOP_CVD::PopulateVoronoiPoints(vec3 a_bounds, float a_cellSize) {
+	voronoiPoints.clear();
+
+	int xMax = a_cellSize / a_bounds[0];
+	int yMax = a_cellSize / a_bounds[1];
+	int zMax = a_cellSize / a_bounds[2];
+
+	for (float i = 0; i < xMax; i++) {
+		for (float j = 0; j < yMax; j++) {
+			for (float k = 0; k < zMax; k++) {
+				// generate a [0, 1] noise value in the given cell
+				// unfortunately not working and Idk why yet (just returns 0?)
+				vec3 noiseVal = GeneratePerlinNoise(vec3(i, j, k));
+			}
+		}
+	}
+}
+
+vec3 SOP_CVD::GeneratePerlinNoise(vec3 a_cell) {
+	UT_Noise noise;
+	noise.setType(UT_Noise::ALLIGATOR); // Set noise type to Perlin
+
+	UT_Vector3 noiseVec;
+	UT_Vector3 pos;
+	pos.x() = a_cell[0];
+	pos.y() = a_cell[1];
+	pos.z() = a_cell[2];
+
+	std::cout << "input" << std::endl;
+	std::cout << pos.x() << ", " << pos.y() << ", " << pos.z() << std::endl;
+
+	noiseVec = noise.turbulence(pos, 1.0, 1.0, 1.0);
+
+	std::cout << "output" << std::endl;
+	std::cout << noiseVec.x() << ", " << noiseVec.y() << ", " << noiseVec.z() << std::endl;
+
+	return vec3(noiseVec.x(), noiseVec.y(), noiseVec.z());
 }
 

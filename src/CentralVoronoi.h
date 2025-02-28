@@ -7,6 +7,7 @@
 //
 
 #include <SOP/SOP_Node.h>
+#include <UT/UT_Noise.h>
 
 #include "vec.h"
 
@@ -76,6 +77,9 @@ namespace HDK_Sample {
         void GRAMMAR(UT_String& _str, fpreal t) {
             return evalString(_str, "grammar", 0, t);
         }*/
+        fpreal CELL_SIZE(fpreal t) {
+            return evalFloat("cellSize", 0, t);
+        }
 
         vec3 BOUNDS(fpreal t) {
             float x = evalFloat("bounds", 0, t);
@@ -84,6 +88,9 @@ namespace HDK_Sample {
             return vec3(x, y, z);
         }
 
+        void PopulateVoronoiPoints(vec3 a_bounds, float a_cellSize);
+        vec3 GeneratePerlinNoise(vec3 a_cell);
+
         ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
         /// Member variables are stored in the actual SOP, not with the geometry
@@ -91,7 +98,7 @@ namespace HDK_Sample {
         /// variable callback.
         /// Another use for local data is a cache to store expensive calculations.
 
-	    // NOTE : You can declare local variables here like this  
+	    // NOTE : You can declare local variables here like this 
         std::vector < std::vector<vec3>> voronoiPoints;
     };
 } // End HDK_Sample namespace
