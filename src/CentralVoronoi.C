@@ -226,7 +226,6 @@ vec3 SOP_CVD::GeneratePerlinNoise(vec3 a_cell) {
 	std::cout << "input" << std::endl;
 	std::cout << pos.x() << ", " << pos.y() << ", " << pos.z() << std::endl;
 
-	//noiseVec = noise.turbulence(pos, 1.0, 1.0, 1.0);
 	noise.turbulence(pos, 1.0, noiseVec, 1.0, 1.0);
 
 	std::cout << "output" << std::endl;
