@@ -90,6 +90,7 @@ namespace HDK_Sample {
 
         void PopulateVoronoiPoints(vec3 a_bounds, float a_cellSize);
         vec3 GeneratePerlinNoise(vec3 a_cell);
+        const void PrintVoronoiPoints();
 
         ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -99,7 +100,7 @@ namespace HDK_Sample {
         /// Another use for local data is a cache to store expensive calculations.
 
 	    // NOTE : You can declare local variables here like this 
-        std::vector < std::vector<vec3>> voronoiPoints;
+        std::vector<std::vector < std::vector<vec3>>> voronoiPoints;
     };
 } // End HDK_Sample namespace
 
