@@ -185,6 +185,29 @@ SOP_CVD::cookMySop(OP_Context &context)
       
 		}
 
+		//draw points
+		for (float i = 0; i < voronoiPoints.size(); i++) {
+			for (float j = 0; j < voronoiPoints[i].size(); j++) {
+				for (float k = 0; k < voronoiPoints[i][j].size(); k++) {
+
+					//poly = GU_PrimPoly::build(gdp, 2, GU_POLY_OPEN);
+					GA_Offset ptoff = gdp->appendPoint();
+					vec3 point = voronoiPoints[i][j][k];
+					//DrawVoronoiEdge(gdp, vec3(0, 0, 0), point);
+					gdp->setPos3(ptoff, UT_Vector3(point[0], point[1], point[2]));
+					//GA_Offset p0 = poly->getPointOffset(0);
+					//GA_Offset p1 = poly->getPointOffset(1);
+					
+					//UT_Vector3 start(0, 0, 0);
+					//UT_Vector3 end(point[0], point[1], point[2]);
+					//gdp->setPos3(p0, start);
+					//gdp->setPos3(p1, end);
+				}
+			}
+		}
+
+		DrawVoronoiCells(gdp);
+
 		// Tell the interrupt server that we've completed. Must do this
 		// regardless of what opStart() returns.
 		boss->opEnd();
@@ -244,5 +267,85 @@ const void SOP_CVD::PrintVoronoiPoints() {
 			std::cout << std::endl;
 		}
 		std::cout << "-----------" << std::endl;
+	}
+}
+
+void SOP_CVD::DrawVoronoiEdge(GU_Detail* gdp, vec3 p1, vec3 p2)
+{
+	GU_PrimPoly* poly = GU_PrimPoly::build(gdp, 2, GU_POLY_OPEN);
+	GA_Offset ptoff1 = poly->getPointOffset(0);
+	GA_Offset ptoff2 = poly->getPointOffset(1);
+
+	gdp->setPos3(ptoff1, UT_Vector3(p1[0], p1[1], p1[2]));
+	gdp->setPos3(ptoff2, UT_Vector3(p2[0], p2[1], p2[2]));
+
+}
+
+void SOP_CVD::DrawVoronoiCells(GU_Detail* gdp) {
+	// For a 3D Voronoi diagram, we need to compute the Delaunay triangulation first
+	// Then construct cells from the dual of that triangulation
+
+	// This is a simplified approach for demonstration
+	for (int i = 0; i < voronoiPoints.size(); i++) {
+		for (int j = 0; j < voronoiPoints[i].size(); j++) {
+			for (int k = 0; k < voronoiPoints[i][j].size(); k++) {
+				vec3 p1 = voronoiPoints[i][j][k];
+
+				// Check all potential neighboring cells in a reasonable radius
+				for (int ni = std::max(0, i - 1); ni <= std::min((int)voronoiPoints.size() - 1, i + 1); ni++) {
+					for (int nj = std::max(0, j - 1); nj <= std::min((int)voronoiPoints[i].size() - 1, j + 1); nj++) {
+						for (int nk = std::max(0, k - 1); nk <= std::min((int)voronoiPoints[i][j].size() - 1, k + 1); nk++) {
+							// Skip self
+							if (i == ni && j == nj && k == nk)
+								continue;
+
+							vec3 p2 = voronoiPoints[ni][nj][nk];
+
+							// Find midpoint between the two points
+							vec3 midpoint = (p1 + p2) * 0.5;
+
+							// Direction from p1 to p2
+							vec3 dir = p2 - p1;
+							float dist = sqrt(dir[0] * dir[0] + dir[1] * dir[1] + dir[2] * dir[2]);
+							dir = dir / dist;  // Normalize
+
+							// For simplicity in this example, we'll just draw short line segments 
+							// at the midpoint perpendicular to the line connecting the two points
+							// In a full implementation, you'd compute intersections of these planes
+
+							// Perpendicular directions (simplified for visualization)
+							vec3 perp1, perp2;
+
+							// Find perpendicular vectors
+							if (fabs(dir[0]) > fabs(dir[1])) {
+								perp1 = vec3(-dir[2], 0, dir[0]);
+							}
+							else {
+								perp1 = vec3(0, -dir[2], dir[1]);
+							}
+
+							float len = sqrt(perp1[0] * perp1[0] + perp1[1] * perp1[1] + perp1[2] * perp1[2]);
+							perp1 = perp1 / len;  // Normalize
+
+							// Cross product for third perpendicular vector
+							perp2[0] = dir[1] * perp1[2] - dir[2] * perp1[1];
+							perp2[1] = dir[2] * perp1[0] - dir[0] * perp1[2];
+							perp2[2] = dir[0] * perp1[1] - dir[1] * perp1[0];
+
+							// Draw a small "cross" at the midpoint to visualize the cell boundary
+							float edgeLength = dist * 0.25;  // Adjust size as needed
+
+							vec3 edge1Start = midpoint - perp1 * edgeLength;
+							vec3 edge1End = midpoint + perp1 * edgeLength;
+							DrawVoronoiEdge(gdp, edge1Start, edge1End);
+
+							vec3 edge2Start = midpoint - perp2 * edgeLength;
+							vec3 edge2End = midpoint + perp2 * edgeLength;
+							DrawVoronoiEdge(gdp, edge2Start, edge2End);
+						}
+					}
+				}
+			}
+		}
 	}
 }

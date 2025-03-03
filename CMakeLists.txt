@@ -27,14 +27,12 @@ include_directories(
 )
 
 set(SOURCE_FILES
-    src/LSystem.cpp
     src/CentralVoronoi.C
     src/main.cpp
     src/vec.cpp
 )
 
 set(HEADER_FILES
-    src/LSystem.h
     src/CentralVoronoi.h
     src/matrix.h
     src/vec.h
