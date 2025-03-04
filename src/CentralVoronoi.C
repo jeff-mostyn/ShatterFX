@@ -223,18 +223,44 @@ void SOP_CVD::PopulateVoronoiPoints(vec3 a_bounds, float a_cellSize) {
 	int yMax = a_bounds[1] / a_cellSize;
 	int zMax = a_bounds[2] / a_cellSize;
 
-	for (float i = 0; i < xMax; i++) {
-		voronoiPoints.push_back(std::vector<std::vector<vec3>>());
-		for (float j = 0; j < yMax; j++) {
-			voronoiPoints[i].push_back(std::vector<vec3>());
-			for (float k = 0; k < zMax; k++) {
+	// first we compute points in a range 2 larger in each axis. We will use these to average our approximate centroids.
+	std::vector<std::vector < std::vector<vec3>>> tmpVoronoiPoints;
+	for (float i = 0; i <= xMax+1; i++) {
+		tmpVoronoiPoints.push_back(std::vector<std::vector<vec3>>());
+		for (float j = 0; j <= yMax+1; j++) {
+			tmpVoronoiPoints[i].push_back(std::vector<vec3>());
+			for (float k = 0; k <= zMax+1; k++) {
 				// generate a [0, 1] noise value in the given cell
 				// then scale by cell size to get offset from corner
 				vec3 noiseVal = GeneratePerlinNoise(vec3(i, j, k)) * a_cellSize;
 
-				vec3 node = vec3(a_cellSize * i, a_cellSize * j, a_cellSize * k) + noiseVal;
+				vec3 node = vec3(a_cellSize * (i - 1.0), a_cellSize * (j - 1.0), a_cellSize * (k - 1.0)) + noiseVal;
 
-				voronoiPoints[i][j].push_back(node);
+				tmpVoronoiPoints[i][j].push_back(node);
+			}
+		}
+	}
+
+	// from the above temp matrix, we will use the average of the current cell and the six in cardinal directions to compute
+	// the approximate centroid. This is in lieu of more expensive methods like Delaunay triangulation or Qhull
+	for (float i = 1; i <= xMax; i++) {
+		voronoiPoints.push_back(std::vector<std::vector<vec3>>());
+		// using i less 1 because we're starting at one higher index to account for larger temp matrix
+		for (float j = 1; j <= yMax; j++) {
+			voronoiPoints[i - 1].push_back(std::vector<vec3>());
+			for (float k = 1; k <= zMax; k++) {
+				vec3 average = (
+					tmpVoronoiPoints[i][j][k] +
+					tmpVoronoiPoints[i+1][j][k] +
+					tmpVoronoiPoints[i-1][j][k] +
+					tmpVoronoiPoints[i][j+1][k] +
+					tmpVoronoiPoints[i][j-1][k] +
+					tmpVoronoiPoints[i][j][k+1]	+ 
+					tmpVoronoiPoints[i][j][k-1] 
+				) / 7.0;
+
+				// using i and j less 1 because we're starting at one higher index to account for larger temp matrix
+				voronoiPoints[i - 1][j - 1].push_back(average);
 			}
 		}
 	}
