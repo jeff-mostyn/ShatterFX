@@ -232,7 +232,7 @@ void SOP_CVD::PopulateVoronoiPoints(vec3 a_bounds, float a_cellSize) {
 			for (float k = 0; k <= zMax+1; k++) {
 				// generate a [0, 1] noise value in the given cell
 				// then scale by cell size to get offset from corner
-				vec3 noiseVal = GeneratePerlinNoise(vec3(i, j, k)) * a_cellSize;
+				vec3 noiseVal = Noise3D(vec3(i, j, k)) * a_cellSize;
 
 				vec3 node = vec3(a_cellSize * (i - 1.0), a_cellSize * (j - 1.0), a_cellSize * (k - 1.0)) + noiseVal;
 
@@ -280,6 +280,23 @@ vec3 SOP_CVD::GeneratePerlinNoise(vec3 a_cell) {
 	noise.turbulence(pos, 1.0, noiseVec, 1.0, 1.0);
 
 	return vec3(noiseVec.x(), noiseVec.y(), noiseVec.z());
+}
+
+// This is modeled after some glsl shader noise functions
+vec3 SOP_CVD::Noise3D(vec3 a_cell) {
+	vec3 nonFractional = vec3(
+		abs(sin(Dot(a_cell, vec3(343.7, 151.1, 934.2)))),
+		abs(sin(Dot(a_cell, vec3(678.9, 432.1, 342.8)))),
+		abs(sin(Dot(a_cell, vec3(845.3, 473.2, 432.7))))
+	) * 200419.35;
+
+	vec3 fractional = vec3(
+		nonFractional[0] - (long)nonFractional[0],
+		nonFractional[1] - (long)nonFractional[1],
+		nonFractional[2] - (long)nonFractional[2]
+	);
+
+	return fractional;
 }
 
 // prints voronoi points in "slices"
