@@ -270,14 +270,14 @@ void SOP_CVD::PopulateVoronoiPoints(vec3 a_bounds, float a_cellSize) {
 vec3 SOP_CVD::GeneratePerlinNoise(vec3 a_cell) {
 	UT_Noise noise;
 	noise.setType(UT_Noise::ALLIGATOR); // Set noise type to Perlin
+	noise.setSeed(1234);
 
 	UT_Vector3 noiseVec;
-	UT_Vector3 pos;
-	pos.x() = a_cell[0];
-	pos.y() = a_cell[1];
-	pos.z() = a_cell[2];
+	UT_Vector3 pos(a_cell[0], a_cell[1], a_cell[2]);
 
-	noise.turbulence(pos, 1.0, noiseVec, 1.0, 1.0);
+	noise.turbulence(pos, 1.0, noiseVec, 0.7, 1.0);
+
+	std::cout << "Turbulence at position " << pos << ": " << noiseVec << std::endl;
 
 	return vec3(noiseVec.x(), noiseVec.y(), noiseVec.z());
 }
