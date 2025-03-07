@@ -36,8 +36,8 @@ newSopOperator(OP_OperatorTable *table)
 			    "CVD",						// UI name
 			     SOP_CVD::myConstructor,	// How to build the SOP
 			     SOP_CVD::myTemplateList,	// My parameters
-			     0,				// Min # of sources
-			     0,				// Max # of sources
+			     1,				// Min # of sources
+			     1,				// Max # of sources
 			     SOP_CVD::myVariables,	// Local variables
 			     OP_FLAG_GENERATOR)		// Flag it as generator
 	    );
@@ -133,23 +133,41 @@ SOP_CVD::disableParms()
 OP_ERROR
 SOP_CVD::cookMySop(OP_Context &context)
 {
+	// ------------------------------------------------------------------
+	// ------------------------ INPUT GUARDS ----------------------------
+	// ------------------------------------------------------------------
+	
+	// make sure to lock input prior to work
+	if (lockInput(0, context) >= UT_ERROR_ABORT) {
+		addError(SOP_MESSAGE, "Failed to lock input geometry.");
+		return error();
+	}
+
+	// collect input geometry as a const, because it should not be modified directly
+	const GU_Detail* inputGeo = SOP_CVD::inputGeo(0, context);
+	if (!inputGeo) {
+		addError(SOP_MESSAGE, "No input geometry found.");
+		return error();
+	}
+
+	// Ensure the input contains polygonal data
+	bool hasPolygons = false;
+	for (GA_Iterator it(inputGeo->getPrimitiveRange()); !it.atEnd(); ++it) {
+		if (inputGeo->getPrimitive(*it)->getTypeId() == GEO_PRIMPOLY) {
+			hasPolygons = true;
+			break;
+		}
+	}
+	if (!hasPolygons) {
+		addError(SOP_MESSAGE, "Input must be a polygonal mesh.");
+		return error();
+	}
+
 	fpreal now = context.getTime();
 
 	// PUT YOUR CODE HERE
 	// DECLARE FIELDS FOR PARAMETERS      
     //    NOTE : [ALL-CAPS] is a function that you need to use and it is declared in the header file to update your values instantly while cooking 
-/*
-	float angle;
-	angle = ANGLE(now);
-
-	float stepSize;
-	stepSize = STEPSIZE(now);
-
-	float iterations;
-	iterations = ITERATIONS(now);
-
-	UT_String grammar;
-	GRAMMAR(grammar, now);*/
 	vec3 bounds;
 	bounds = BOUNDS(now);
 
@@ -165,27 +183,36 @@ SOP_CVD::cookMySop(OP_Context &context)
 
 
 	std::cout << "---------------------------------------------" << std::endl;
+	
+	
 	// DRAW GEOMETRY
-    float		 rad, tx, ty, tz;
-    int			 divisions, plane;
-    int			 xcoord =0, ycoord = 1, zcoord =2;
-    float		 tmp;
-    UT_Vector4		 pos;
-    GU_PrimPoly		*poly;
-    int			 i;
-    UT_Interrupt	*boss;
+    /* These were all examples, not sure exactly what they doooo*/
+		/*float		 rad, tx, ty, tz;
+		int			 divisions, plane;
+		int			 xcoord =0, ycoord = 1, zcoord =2;
+		float		 tmp;
+		UT_Vector4		 pos;
+		GU_PrimPoly		*poly;
+		int			 i;*/
+	UT_Interrupt	*boss;
 
     // Check to see that there hasn't been a critical error in cooking the SOP.
     if (error() < UT_ERROR_ABORT) {
 		boss = UTgetInterrupt();
-		gdp->clearAndDestroy();
 
 		// Start the interrupt server
 		if (boss->opStart("Building GEO")) {
-      
+			// ----------------------------------------------------------------
+			// ------------------------ PROCESSING ----------------------------
+			// ----------------------------------------------------------------
+
+			// make a handle to an editable copy of the input geometry
+			gdp->clearAndDestroy();
+			duplicateSource(0, context, gdp);
 		}
 
 		//draw points
+		/*
 		for (float i = 0; i < voronoiPoints.size(); i++) {
 			for (float j = 0; j < voronoiPoints[i].size(); j++) {
 				for (float k = 0; k < voronoiPoints[i][j].size(); k++) {
@@ -204,14 +231,16 @@ SOP_CVD::cookMySop(OP_Context &context)
 					//gdp->setPos3(p1, end);
 				}
 			}
-		}
+		}*/
 
-		DrawVoronoiCells(gdp);
+		//DrawVoronoiCells(gdp);
 
 		// Tell the interrupt server that we've completed. Must do this
 		// regardless of what opStart() returns.
 		boss->opEnd();
     }
+
+	unlockInput(0);
 
     return error();
 }
