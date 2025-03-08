@@ -150,16 +150,16 @@ SOP_CVD::cookMySop(OP_Context &context)
 		return error();
 	}
 
-	// Ensure the input contains polygonal data
+	// Ensure the input contains tetrahedral data
 	bool hasPolygons = false;
 	for (GA_Iterator it(inputGeo->getPrimitiveRange()); !it.atEnd(); ++it) {
-		if (inputGeo->getPrimitive(*it)->getTypeId() == GEO_PRIMPOLY) {
+		if (inputGeo->getPrimitive(*it)->getTypeId() == GEO_PRIMTETRAHEDRON) {
 			hasPolygons = true;
 			break;
 		}
 	}
 	if (!hasPolygons) {
-		addError(SOP_MESSAGE, "Input must be a polygonal mesh.");
+		addError(SOP_MESSAGE, "Input must be a tetrahedral mesh.");
 		return error();
 	}
 
