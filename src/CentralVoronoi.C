@@ -185,7 +185,68 @@ SOP_CVD::cookMySop(OP_Context &context)
 	//PrintVoronoiPoints();
 
 
-	//std::cout << "---------------------------------------------" << std::endl;
+	//std::cout << "---------------------------------------------" << std::endl;	
+	
+	// DRAW GEOMETRY
+    /* These were all examples, not sure exactly what they doooo*/
+		/*float		 rad, tx, ty, tz;
+		int			 divisions, plane;
+		int			 xcoord =0, ycoord = 1, zcoord =2;
+		float		 tmp;
+		UT_Vector4		 pos;
+		GU_PrimPoly		*poly;
+		int			 i;*/
+	UT_Interrupt	*boss;
+
+    // Check to see that there hasn't been a critical error in cooking the SOP.
+    if (error() < UT_ERROR_ABORT) {
+		boss = UTgetInterrupt();
+
+		// Start the interrupt server
+		if (boss->opStart("Building GEO")) {
+			// ------------------------------------------------------------
+			// ------------------------ OUTPUT ----------------------------
+			// ------------------------------------------------------------
+
+			// make a handle to an editable copy of the input geometry
+			gdp->clearAndDestroy();
+			duplicateSource(0, context, gdp);
+		}
+
+		//draw points
+		/*
+		for (float i = 0; i < voronoiPoints.size(); i++) {
+			for (float j = 0; j < voronoiPoints[i].size(); j++) {
+				for (float k = 0; k < voronoiPoints[i][j].size(); k++) {
+
+					//poly = GU_PrimPoly::build(gdp, 2, GU_POLY_OPEN);
+					GA_Offset ptoff = gdp->appendPoint();
+					vec3 point = voronoiPoints[i][j][k];
+					//DrawVoronoiEdge(gdp, vec3(0, 0, 0), point);
+					gdp->setPos3(ptoff, UT_Vector3(point[0], point[1], point[2]));
+					//GA_Offset p0 = poly->getPointOffset(0);
+					//GA_Offset p1 = poly->getPointOffset(1);
+					
+					//UT_Vector3 start(0, 0, 0);
+					//UT_Vector3 end(point[0], point[1], point[2]);
+					//gdp->setPos3(p0, start);
+					//gdp->setPos3(p1, end);
+				}
+			}
+		}*/
+
+		//DrawVoronoiCells(gdp);
+
+		// Tell the interrupt server that we've completed. Must do this
+		// regardless of what opStart() returns.
+		boss->opEnd();
+    }
+
+	unlockInput(0);
+
+	// ----------------------------------------------------------------------------------
+	// ------------------------ PROCESS OBJECT IN GDP BUFFER ----------------------------
+	// ----------------------------------------------------------------------------------
 
 	// DYNAMIC MEMORY - DO NOT LEAVE FUNCTION WITHOUT DELETING
 	TetrahedralObject* obj = new TetrahedralObject();
@@ -236,64 +297,6 @@ SOP_CVD::cookMySop(OP_Context &context)
 	for (vec3 vec : obj->GetPointsSingleton()) {
 		std::cout << (vec)[0] << "  " << (vec)[1] << "  " << (vec)[2] << std::endl;
 	}
-	
-	
-	// DRAW GEOMETRY
-    /* These were all examples, not sure exactly what they doooo*/
-		/*float		 rad, tx, ty, tz;
-		int			 divisions, plane;
-		int			 xcoord =0, ycoord = 1, zcoord =2;
-		float		 tmp;
-		UT_Vector4		 pos;
-		GU_PrimPoly		*poly;
-		int			 i;*/
-	UT_Interrupt	*boss;
-
-    // Check to see that there hasn't been a critical error in cooking the SOP.
-    if (error() < UT_ERROR_ABORT) {
-		boss = UTgetInterrupt();
-
-		// Start the interrupt server
-		if (boss->opStart("Building GEO")) {
-			// ----------------------------------------------------------------
-			// ------------------------ PROCESSING ----------------------------
-			// ----------------------------------------------------------------
-
-			// make a handle to an editable copy of the input geometry
-			gdp->clearAndDestroy();
-			duplicateSource(0, context, gdp);
-		}
-
-		//draw points
-		/*
-		for (float i = 0; i < voronoiPoints.size(); i++) {
-			for (float j = 0; j < voronoiPoints[i].size(); j++) {
-				for (float k = 0; k < voronoiPoints[i][j].size(); k++) {
-
-					//poly = GU_PrimPoly::build(gdp, 2, GU_POLY_OPEN);
-					GA_Offset ptoff = gdp->appendPoint();
-					vec3 point = voronoiPoints[i][j][k];
-					//DrawVoronoiEdge(gdp, vec3(0, 0, 0), point);
-					gdp->setPos3(ptoff, UT_Vector3(point[0], point[1], point[2]));
-					//GA_Offset p0 = poly->getPointOffset(0);
-					//GA_Offset p1 = poly->getPointOffset(1);
-					
-					//UT_Vector3 start(0, 0, 0);
-					//UT_Vector3 end(point[0], point[1], point[2]);
-					//gdp->setPos3(p0, start);
-					//gdp->setPos3(p1, end);
-				}
-			}
-		}*/
-
-		//DrawVoronoiCells(gdp);
-
-		// Tell the interrupt server that we've completed. Must do this
-		// regardless of what opStart() returns.
-		boss->opEnd();
-    }
-
-	unlockInput(0);
 
 	delete obj;
 
