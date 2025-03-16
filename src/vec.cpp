@@ -297,6 +297,10 @@ int operator != (const vec3& a, const vec3& b)
 	return !(a == b); 
 }
 
+int operator < (const vec3& a, const vec3& b) {
+	return ((a[0] + a[1] + a[2]) < (b[0] + b[1] + b[2]));
+}
+
 vec3 Prod(const vec3& a, const vec3& b)
 { 
 	return vec3(a.n[VX] * b.n[VX], a.n[VY] * b.n[VY], a.n[VZ] * b.n[VZ]); 

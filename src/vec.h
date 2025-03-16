@@ -161,6 +161,7 @@ public:
 	friend vec3 operator ^ (const vec3& a, const vec3& b);	// cross product
 	friend int operator == (const vec3& a, const vec3& b);	// v1 == v2 ?
 	friend int operator != (const vec3& a, const vec3& b);	// v1 != v2 ?
+	friend int operator < (const vec3& a, const vec3& b);	// v1 != v2 ?
 	friend vec3 Prod(const vec3& a, const vec3& b);		    // term by term *
 	friend double Dot(const vec3& a, const vec3& b);			// dot product
 	friend double Distance(const vec3& a, const vec3& b);  // distance

@@ -14,10 +14,13 @@
 #include <PRM/PRM_SpareData.h>
 #include <OP/OP_Operator.h>
 #include <OP/OP_OperatorTable.h>
+#include <GU/GU_PrimTetrahedron.h>
+#include <GA/GA_Primitive.h>
 
 
 #include <limits.h>
 #include "CentralVoronoi.h"
+#include "TetrahedralObject.h"
 using namespace HDK_Sample;
 
 // Help is stored in a "wiki" style text file. 
@@ -174,15 +177,65 @@ SOP_CVD::cookMySop(OP_Context &context)
 	float cellSize;
 	cellSize = CELL_SIZE(now);
 
-	std::cout << "---------------------------------------------" << std::endl;
+	//std::cout << "---------------------------------------------" << std::endl;
 
 	// PROCESS DATA HERE
 
-	PopulateVoronoiPoints(bounds, cellSize);
-	PrintVoronoiPoints();
+	//PopulateVoronoiPoints(bounds, cellSize);
+	//PrintVoronoiPoints();
 
 
-	std::cout << "---------------------------------------------" << std::endl;
+	//std::cout << "---------------------------------------------" << std::endl;
+
+	// DYNAMIC MEMORY - DO NOT LEAVE FUNCTION WITHOUT DELETING
+	TetrahedralObject* obj = new TetrahedralObject();
+	obj->DumpPoints();
+
+	GA_Iterator primIter(gdp->getPrimitiveRange());
+	for (; !primIter.atEnd(); ++primIter)
+	{
+		GA_Offset primOffset = primIter.getOffset();
+		const GA_Primitive* prim = gdp->getPrimitive(primOffset);
+
+		// Check if the primitive is a tetrahedron
+		if (prim->getTypeId() == GEO_PRIMTETRAHEDRON)
+		{
+			std::cout << "TETRAHEDRON" << std::endl;
+			const GEO_PrimTetrahedron* tetra = static_cast<const GEO_PrimTetrahedron*>(prim);
+			std::vector<exint> vertices = std::vector<exint>();
+
+			// Access the four vertices of the tetrahedron
+			for (int i = 0; i < 4; ++i)
+			{
+				GA_Offset vertOffset = tetra->getVertexOffset(i);
+				vertices.push_back(vertOffset);
+
+				GA_Offset pointOffset = tetra->getPointOffset(i);
+				UT_Vector3 pos = gdp->getPos3(pointOffset);
+
+				vec3* point = new vec3(pos.x(), pos.y(), pos.z());
+				obj->AddPoint(point);
+			}
+
+			// add the vertices for this tetrahedron to the object
+			obj->AddTet(vertices);
+		}
+	}
+
+	for (vec3* vec : obj->GetPoints()) {
+		std::cout << (*vec)[0] << "  " << (*vec)[1] << "  " << (*vec)[2] << std::endl;
+	}
+
+	std::cout << "-----------" << std::endl;
+
+	std::cout << "point count: " << obj->GetPoints().size() << std::endl;
+	std::cout << "set size: " << obj->GetPointsSingleton().size() << std::endl;
+
+	std::cout << "-----------" << std::endl;
+
+	for (vec3 vec : obj->GetPointsSingleton()) {
+		std::cout << (vec)[0] << "  " << (vec)[1] << "  " << (vec)[2] << std::endl;
+	}
 	
 	
 	// DRAW GEOMETRY
@@ -241,6 +294,8 @@ SOP_CVD::cookMySop(OP_Context &context)
     }
 
 	unlockInput(0);
+
+	delete obj;
 
     return error();
 }
