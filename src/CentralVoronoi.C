@@ -237,68 +237,70 @@ SOP_CVD::cookMySop(OP_Context &context)
 
 		//DrawVoronoiCells(gdp);
 
+		// ----------------------------------------------------------------------------------
+		// ------------------------ PROCESS OBJECT IN GDP BUFFER ----------------------------
+		// ----------------------------------------------------------------------------------
+
+		// DYNAMIC MEMORY - DO NOT LEAVE FUNCTION WITHOUT DELETING
+		TetrahedralObject* obj = new TetrahedralObject();
+		obj->DumpPoints();
+
+		GA_Iterator primIter(gdp->getPrimitiveRange());
+		for (; !primIter.atEnd(); ++primIter)
+		{
+			GA_Offset primOffset = primIter.getOffset();
+			const GA_Primitive* prim = gdp->getPrimitive(primOffset);
+
+			// Check if the primitive is a tetrahedron
+			if (prim->getTypeId() == GEO_PRIMTETRAHEDRON)
+			{
+				const GEO_PrimTetrahedron* tetra = static_cast<const GEO_PrimTetrahedron*>(prim);
+				std::vector<exint> vertices = std::vector<exint>();
+
+				// Access the four vertices of the tetrahedron
+				for (int i = 0; i < 4; ++i)
+				{
+					GA_Offset vertOffset = tetra->getVertexOffset(i);
+					vertices.push_back(vertOffset);
+
+					GA_Offset pointOffset = tetra->getPointOffset(i);
+					UT_Vector3 pos = gdp->getPos3(pointOffset);
+
+					vec3* point = new vec3(pos.x(), pos.y(), pos.z());
+					obj->AddPoint(point);
+				}
+
+				// add the vertices for this tetrahedron to the object
+				obj->AddTet(vertices);
+			}
+		}
+
+		// flush gdp to render our stuff
+		gdp->clearAndDestroy();
+
+		std::cout << "-----------" << std::endl;
+
+		std::cout << "point count: " << obj->GetPoints().size() << std::endl;
+		std::cout << "set size: " << obj->GetPointsSingleton().size() << std::endl;
+
+		std::cout << "-----------" << std::endl;
+
+		// print singleton points
+		for (vec3 vec : obj->GetPointsSingleton()) {
+			//std::cout << (vec)[0] << "  " << (vec)[1] << "  " << (vec)[2] << std::endl;
+			GA_Offset ptoff = gdp->appendPoint();
+			gdp->setPos3(ptoff, UT_Vector3(vec[0], vec[1], vec[2]));
+		}
+
+		delete obj;
+
+
 		// Tell the interrupt server that we've completed. Must do this
 		// regardless of what opStart() returns.
 		boss->opEnd();
     }
 
 	unlockInput(0);
-
-	// ----------------------------------------------------------------------------------
-	// ------------------------ PROCESS OBJECT IN GDP BUFFER ----------------------------
-	// ----------------------------------------------------------------------------------
-
-	// DYNAMIC MEMORY - DO NOT LEAVE FUNCTION WITHOUT DELETING
-	TetrahedralObject* obj = new TetrahedralObject();
-	obj->DumpPoints();
-
-	GA_Iterator primIter(gdp->getPrimitiveRange());
-	for (; !primIter.atEnd(); ++primIter)
-	{
-		GA_Offset primOffset = primIter.getOffset();
-		const GA_Primitive* prim = gdp->getPrimitive(primOffset);
-
-		// Check if the primitive is a tetrahedron
-		if (prim->getTypeId() == GEO_PRIMTETRAHEDRON)
-		{
-			std::cout << "TETRAHEDRON" << std::endl;
-			const GEO_PrimTetrahedron* tetra = static_cast<const GEO_PrimTetrahedron*>(prim);
-			std::vector<exint> vertices = std::vector<exint>();
-
-			// Access the four vertices of the tetrahedron
-			for (int i = 0; i < 4; ++i)
-			{
-				GA_Offset vertOffset = tetra->getVertexOffset(i);
-				vertices.push_back(vertOffset);
-
-				GA_Offset pointOffset = tetra->getPointOffset(i);
-				UT_Vector3 pos = gdp->getPos3(pointOffset);
-
-				vec3* point = new vec3(pos.x(), pos.y(), pos.z());
-				obj->AddPoint(point);
-			}
-
-			// add the vertices for this tetrahedron to the object
-			obj->AddTet(vertices);
-		}
-	}
-
-	for (vec3* vec : obj->GetPoints()) {
-		std::cout << (*vec)[0] << "  " << (*vec)[1] << "  " << (*vec)[2] << std::endl;
-	}
-
-	std::cout << "-----------" << std::endl;
-
-	std::cout << "point count: " << obj->GetPoints().size() << std::endl;
-	std::cout << "set size: " << obj->GetPointsSingleton().size() << std::endl;
-
-	std::cout << "-----------" << std::endl;
-
-	for (vec3 vec : obj->GetPointsSingleton()) {
-		std::cout << (vec)[0] << "  " << (vec)[1] << "  " << (vec)[2] << std::endl;
-	}
-
-	delete obj;
 
     return error();
 }
