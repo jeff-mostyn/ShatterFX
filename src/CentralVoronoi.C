@@ -255,19 +255,18 @@ SOP_CVD::cookMySop(OP_Context &context)
 			if (prim->getTypeId() == GEO_PRIMTETRAHEDRON)
 			{
 				const GEO_PrimTetrahedron* tetra = static_cast<const GEO_PrimTetrahedron*>(prim);
-				std::vector<exint> vertices = std::vector<exint>();
+				std::vector<vec3> vertices = std::vector<vec3>();
 
 				// Access the four vertices of the tetrahedron
 				for (int i = 0; i < 4; ++i)
 				{
 					GA_Offset vertOffset = tetra->getVertexOffset(i);
-					vertices.push_back(vertOffset);
 
 					GA_Offset pointOffset = tetra->getPointOffset(i);
 					UT_Vector3 pos = gdp->getPos3(pointOffset);
 
-					vec3* point = new vec3(pos.x(), pos.y(), pos.z());
-					obj->AddPoint(point);
+					vec3 point = vec3(pos.x(), pos.y(), pos.z());
+					vertices.push_back(point);
 				}
 
 				// add the vertices for this tetrahedron to the object
@@ -280,7 +279,6 @@ SOP_CVD::cookMySop(OP_Context &context)
 
 		std::cout << "-----------" << std::endl;
 
-		std::cout << "point count: " << obj->GetPoints().size() << std::endl;
 		std::cout << "set size: " << obj->GetPointsSingleton().size() << std::endl;
 
 		std::cout << "-----------" << std::endl;
