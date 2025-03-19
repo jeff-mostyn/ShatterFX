@@ -1,11 +1,16 @@
 #include <set>
 #include <vector>
+
+#include <Eigen/Dense>
 #include <SYS/SYS_Types.h>
 
 #include "vec.h"
 
 struct Tetrahedron {
-	std::vector<vec3> points;
+	std::vector<vec3> m_points;
+	std::vector<double> a, b, c, d;
+
+	double TetrahedralVolume();
 };
 
 class TetrahedralObject {
