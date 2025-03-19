@@ -1,6 +1,15 @@
 #include "TetrahedralObject.h"
 
 
+vec3 Tetrahedron::GetCenterOfMass() {
+	if (m_points.size() == 4) {
+		return 0.25 * (m_points[0] + m_points[1] + m_points[2] + m_points[3]);
+	}
+	else {
+		return vec3Zero;
+	}
+}
+
 double Tetrahedron::TetrahedralVolume() {
 	// the columns of this matrix are the tetrahedrons 1st point coords, subtracted from its 2nd, 3rd, and 4th points coords.
 	// the rows correspond to x, y, z
