@@ -49,7 +49,7 @@ void checkTetMinMax(Tetrahedron *tet, vec3 &min, vec3 &max)
 {
 	min = vec3(FLT_MAX, FLT_MAX, FLT_MAX);
 	max = vec3(FLT_MIN, FLT_MIN, FLT_MIN);
-	for (vec3 point : tet->points)
+	for (vec3 point : tet->m_points)
 	{
 		min[0] = point[0] < min[0] ? point[0] : min[0];
 		min[1] = point[1] < min[1] ? point[1] : min[1];
