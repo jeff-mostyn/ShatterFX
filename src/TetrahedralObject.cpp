@@ -28,6 +28,50 @@ double Tetrahedron::TetrahedralVolume() {
 	return A.determinant() / 6.0;
 }
 
+void Tetrahedron::ComputeCoefficients() {
+	a = vector<double>();
+	b = vector<double>();
+	c = vector<double>();
+	d = vector<double>();
+
+	// Use Cramer's rule to solve system of 4 equations of form AX = B
+	// equations are the shape function N = a + bx + cy + dz
+	Eigen::Matrix4f A;
+	A << 1.f, m_points[0][0], m_points[0][1], m_points[0][2],
+		1.f, m_points[1][0], m_points[1][1], m_points[1][2],
+		1.f, m_points[2][0], m_points[2][1], m_points[2][2],
+		1.f, m_points[3][0], m_points[3][1], m_points[3][2];
+
+
+	// iterate to calculate a, b, c, d, for each point in m_points. i determines which point, inner loop j determines a, b, c, d
+	// the location of 1 in vector B corresponds to the first, second, third, fourth points.
+	for (int i = 0; i < 4; i++) {
+		Eigen::Vector4f B = { 0, 0, 0, 0 };
+		B[i] = 1;
+
+		// iterate across matrix A, substituting each column with B. first column gets us a, 2nd b, 3rd c, etc.
+		for (int j = 0; j < 4; j++) {
+			Eigen::Matrix4f A_copy = A;
+			A_copy.col(j) = B;
+
+			switch (j) {
+			case 0:
+				a.push_back(A_copy.determinant() / A.determinant());
+				break;
+			case 1:
+				b.push_back(A_copy.determinant() / A.determinant());
+				break;
+			case 2:
+				c.push_back(A_copy.determinant() / A.determinant());
+				break;
+			case 3:
+				d.push_back(A_copy.determinant() / A.determinant());
+				break;
+			}
+		}
+	}
+}
+
 
 TetrahedralObject::TetrahedralObject() {
 	m_tets = std::vector<Tetrahedron*>();
@@ -40,8 +84,8 @@ TetrahedralObject::~TetrahedralObject() {
 }
 
 void TetrahedralObject::AddTet(std::vector<vec3> a_points) {
-	Tetrahedron* tet = new Tetrahedron();
-	tet->m_points = std::vector<vec3>(a_points);
+	Tetrahedron* tet = new Tetrahedron(a_points);
+
 
 	m_tets.push_back(tet);
 

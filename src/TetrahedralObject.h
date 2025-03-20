@@ -10,8 +10,13 @@ struct Tetrahedron {
 	std::vector<vec3> m_points;
 	std::vector<double> a, b, c, d;
 
+	Tetrahedron(std::vector<vec3> a_points) {
+		m_points = std::vector<vec3>(a_points);
+		ComputeCoefficients();
+	}
 	vec3 GetCenterOfMass();
 	double TetrahedralVolume();
+	void ComputeCoefficients();
 };
 
 class TetrahedralObject {
