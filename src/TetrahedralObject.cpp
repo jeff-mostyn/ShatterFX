@@ -38,6 +38,16 @@ void Tetrahedron::ComputeCoefficients() {
 
 	// Use Cramer's rule to solve system of 4 equations of form AX = B
 	// equations are the shape function N = a + bx + cy + dz
+	// coefficients will be calculated by determinant(Amod) / determinant(A) where A = 
+	//
+	// | 1 x0 y0 z0 | 
+	// | 1 x1 y1 z1 |
+	// | 1 x2 y2 z2 |
+	// | 1 x3 y3 z3 |
+	//
+	// and Amod is A, except one of its columns (which one depends on if we're calculating for coeff a, b, c, or, d)
+	// is replaced by [1 0 0 0], [0 1 0 0], [0 0 1 0], or [0 0 0 1] (which one depends on if we're getting coeffs for 1st, 2nd, 3rd, or 4th point)
+	//
 	Eigen::Matrix4f A;
 	A << 1.f, m_points[0][0], m_points[0][1], m_points[0][2],
 		1.f, m_points[1][0], m_points[1][1], m_points[1][2],
