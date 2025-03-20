@@ -46,7 +46,9 @@ void Tetrahedron::ComputeCoefficients() {
 	// | 1 x3 y3 z3 |
 	//
 	// and Amod is A, except one of its columns (which one depends on if we're calculating for coeff a, b, c, or, d)
-	// is replaced by [1 0 0 0], [0 1 0 0], [0 0 1 0], or [0 0 0 1] (which one depends on if we're getting coeffs for 1st, 2nd, 3rd, or 4th point)
+	// is replaced by... 
+	// 
+	// B = [1 0 0 0], [0 1 0 0], [0 0 1 0], or [0 0 0 1] (which one depends on if we're getting coeffs for 1st, 2nd, 3rd, or 4th point)
 	//
 	Eigen::Matrix4f A;
 	A << 1.f, m_points[0][0], m_points[0][1], m_points[0][2],
