@@ -284,11 +284,19 @@ SOP_CVD::cookMySop(OP_Context &context)
 		std::cout << "-----------" << std::endl;
 
 		// print singleton points
-		for (vec3 vec : obj->GetPointsSingleton()) {
-			//std::cout << (vec)[0] << "  " << (vec)[1] << "  " << (vec)[2] << std::endl;
-			GA_Offset ptoff = gdp->appendPoint();
-			gdp->setPos3(ptoff, UT_Vector3(vec[0], vec[1], vec[2]));
-		}
+		//for (vec3 vec : obj->GetPointsSingleton()) {
+		//	//std::cout << (vec)[0] << "  " << (vec)[1] << "  " << (vec)[2] << std::endl;
+		//	GA_Offset ptoff = gdp->appendPoint();
+		//	gdp->setPos3(ptoff, UT_Vector3(vec[0], vec[1], vec[2]));
+		//}
+
+		vec3 min = obj->GetMin();
+		GA_Offset ptoff = gdp->appendPoint();
+		gdp->setPos3(ptoff, UT_Vector3(min[0], min[1], min[2]));
+
+		vec3 max = obj->GetMax();
+		ptoff = gdp->appendPoint();
+		gdp->setPos3(ptoff, UT_Vector3(max[0], max[1], max[2]));
 
 		delete obj;
 
