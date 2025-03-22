@@ -14,10 +14,10 @@ vec3 Tetrahedron::GetCenterOfMass()
 
 double Tetrahedron::TetrahedralVolume()
 {
+	Eigen::Matrix3f A;
+	// Calculate the Jacobian
 	// the columns of this matrix are the tetrahedrons 1st point coords, subtracted from its 2nd, 3rd, and 4th points coords.
 	// the rows correspond to x, y, z
-	Eigen::Matrix3f A;
-
 	vec3 diff10 = m_points[1] - m_points[0];
 	vec3 diff20 = m_points[2] - m_points[0];
 	vec3 diff30 = m_points[3] - m_points[0];
@@ -26,8 +26,12 @@ double Tetrahedron::TetrahedralVolume()
 		diff10[1], diff20[1], diff30[1],
 		diff10[2], diff20[2], diff30[2];
 
+	// assign calculated Jacobian to struct member variable J
+	J = A;
+
 	// volume is the determinant of the above matrix (whatever the name for that matrix is) divided by 6
-	return A.determinant() / 6.0;
+	V = J.determinant() / 6.0;
+	return V;
 }
 
 void Tetrahedron::ComputeCoefficients() {
@@ -84,6 +88,25 @@ void Tetrahedron::ComputeCoefficients() {
 			}
 		}
 	}
+
+	// with the coefficients, we can compute the strain-displacement matrix of the tetrahedron
+	// it is 12 x 6 and generally of the form
+	// | b1 00 00 b2 00 00 b3 00 00 b4 00 00 |
+	// | 00 c1 00 00 c2 00 00 c3 00 00 c4 00 |
+	// | 00 00 d1 00 00 d2 00 00 d3 00 00 d4 |
+	// | c1 b1 00 c2 b2 00 c3 b3 00 c4 b4 00 |
+	// | 00 d1 c1 00 d2 c2 00 d3 c3 00 d4 c4 |
+	// | d1 00 b1 d2 00 b2 d3 00 b3 d4 00 b4 |
+	Eigen::MatrixXf Strain_Disp;
+	Strain_Disp <<
+		b[0], 0, 0, b[1], 0, 0, b[2], 0, 0, b[3], 0, 0,
+		0, c[0], 0, 0, c[1], 0, 0, c[2], 0, 0, c[3], 0,
+		0, 0, d[0], 0, 0, d[1], 0, 0, d[2], 0, 0, d[3],
+		c[0], b[0], 0, c[1], b[1], 0, c[2], b[2], 0, c[3], b[3], 0,
+		0, d[0], c[0], 0, d[1], c[1], 0, d[2], c[2], 0, d[3], c[3],
+		d[0], 0, b[0], d[1], 0, b[1], d[2], 0, b[2], d[3], 0, b[3];
+
+	B = Strain_Disp;
 }
 
 
