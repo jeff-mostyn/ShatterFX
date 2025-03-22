@@ -19,7 +19,7 @@ struct Tetrahedron
 	Tetrahedron(std::vector<vec3> a_points)
 	{
 		m_points = std::vector<vec3>(a_points);
-		ComputeCoefficients();
+		//ComputeCoefficients();
 	}
 	vec3 GetCenterOfMass();
 	double TetrahedralVolume();
