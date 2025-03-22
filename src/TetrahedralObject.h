@@ -3,6 +3,8 @@
 
 #include <Eigen/Dense>
 #include <SYS/SYS_Types.h>
+#include <SOP/SOP_Node.h>
+#include <GU/GU_PrimPoly.h>
 
 #include "vec.h"
 
@@ -12,6 +14,7 @@ struct Tetrahedron {
 
 	vec3 GetCenterOfMass();
 	double TetrahedralVolume();
+	void Draw(GU_Detail* gdp);
 };
 
 class TetrahedralObject {
@@ -24,6 +27,7 @@ public:
 	std::vector<Tetrahedron*> GetTets();
 	vec3 GetMin();
 	vec3 GetMax();
+	void Draw(GU_Detail* gdp);
 
 private:
 	std::set<vec3> m_pointSet;	// we maintain a set so we make sure there are no duplicate points

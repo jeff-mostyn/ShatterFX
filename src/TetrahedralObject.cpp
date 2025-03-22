@@ -30,6 +30,25 @@ double Tetrahedron::TetrahedralVolume()
 	return A.determinant() / 6.0;
 }
 
+void Tetrahedron::Draw(GU_Detail* gdp)
+{
+	for (int i = 0; i < 4; i++)
+	{
+		vec3 p1 = m_points[i];
+		vec3 p2 = m_points[(i + 1) % 4];
+		vec3 p3 = m_points[(i + 2) % 4];
+
+		GU_PrimPoly* poly = GU_PrimPoly::build(gdp, 3, GU_POLY_CLOSED);
+		GA_Offset ptoff1 = poly->getPointOffset(0);
+		GA_Offset ptoff2 = poly->getPointOffset(1);
+		GA_Offset ptoff3 = poly->getPointOffset(2);
+
+		gdp->setPos3(ptoff1, UT_Vector3(p1[0], p1[1], p1[2]));
+		gdp->setPos3(ptoff2, UT_Vector3(p2[0], p2[1], p2[2]));
+		gdp->setPos3(ptoff3, UT_Vector3(p3[0], p3[1], p3[2]));
+	}
+}
+
 TetrahedralObject::TetrahedralObject() : m_min(FLT_MAX, FLT_MAX, FLT_MAX), m_max(FLT_MIN, FLT_MIN, FLT_MIN)
 {
 	m_tets = std::vector<Tetrahedron *>();
@@ -110,4 +129,12 @@ vec3 TetrahedralObject::GetMin()
 vec3 TetrahedralObject::GetMax()
 {
 	return m_max;
+}
+
+void TetrahedralObject::Draw(GU_Detail* gdp)
+{
+	for (Tetrahedron* tet : m_tets)
+	{
+		tet->Draw(gdp);
+	}
 }
