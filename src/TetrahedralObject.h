@@ -11,7 +11,7 @@
 struct Tetrahedron
 {
 	std::vector<vec3> m_points;
-	std::vector<double> a, b, c, d; // coefficients for shape function
+	std::vector<float> a, b, c, d; 	// coefficients for shape function
 	Eigen::Matrix3f J;				// Jacobian
 	Eigen::MatrixXf B;				// strain-displacement matrix
 	double V = 0;					// Volume

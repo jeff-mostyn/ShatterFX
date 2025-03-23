@@ -53,12 +53,11 @@ void Tetrahedron::Draw(GU_Detail *gdp)
 	}
 }
 
-void Tetrahedron::ComputeCoefficients()
-{
-	a = vector<double>();
-	b = vector<double>();
-	c = vector<double>();
-	d = vector<double>();
+void Tetrahedron::ComputeCoefficients() {
+	a = vector<float>();
+	b = vector<float>();
+	c = vector<float>();
+	d = vector<float>();
 
 	// Use Cramer's rule to solve system of 4 equations of form AX = B
 	// equations are the shape function N = a + bx + cy + dz
@@ -119,13 +118,14 @@ void Tetrahedron::ComputeCoefficients()
 	// | c1 b1 00 c2 b2 00 c3 b3 00 c4 b4 00 |
 	// | 00 d1 c1 00 d2 c2 00 d3 c3 00 d4 c4 |
 	// | d1 00 b1 d2 00 b2 d3 00 b3 d4 00 b4 |
-	Eigen::MatrixXf Strain_Disp;
-	Strain_Disp << b[0], 0.00, 0.00, b[1], 0.00, 0.00, b[2], 0.00, 0.00, b[3], 0.00, 0.00,
-		0.00, c[0], 0.00, 0.00, c[1], 0.00, 0.00, c[2], 0.00, 0.00, c[3], 0.00,
-		0.00, 0.00, d[0], 0.00, 0.00, d[1], 0.00, 0.00, d[2], 0.00, 0.00, d[3],
-		c[0], b[0], 0.00, c[1], b[1], 0.00, c[2], b[2], 0.00, c[3], b[3], 0.00,
-		0.00, d[0], c[0], 0.00, d[1], c[1], 0.00, d[2], c[2], 0.00, d[3], c[3],
-		d[0], 0.00, b[0], d[1], 0.00, b[1], d[2], 0.00, b[2], d[3], 0.00, b[3];
+	Eigen::MatrixXf Strain_Disp{
+		{ b[0], 0.00, 0.00, b[1], 0.00, 0.00, b[2], 0.00, 0.00, b[3], 0.00, 0.00 },
+		{ 0.00, c[0], 0.00, 0.00, c[1], 0.00, 0.00, c[2], 0.00, 0.00, c[3], 0.00 },
+		{ 0.00, 0.00, d[0], 0.00, 0.00, d[1], 0.00, 0.00, d[2], 0.00, 0.00, d[3] },
+		{ c[0], b[0], 0.00, c[1], b[1], 0.00, c[2], b[2], 0.00, c[3], b[3], 0.00 },
+		{ 0.00, d[0], c[0], 0.00, d[1], c[1], 0.00, d[2], c[2], 0.00, d[3], c[3] },
+		{ d[0], 0.00, b[0], d[1], 0.00, b[1], d[2], 0.00, b[2], d[3], 0.00, b[3] }
+	};
 
 	B = Strain_Disp;
 }
