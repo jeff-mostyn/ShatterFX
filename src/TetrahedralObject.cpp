@@ -247,7 +247,16 @@ vec3 TetrahedralObject::GetMax()
 
 void TetrahedralObject::GenerateFragments(float cellSize)
 {
+	for (float x = m_min[0]; x < m_max[0]; x += cellSize)
+	{
+		for (float y = m_min[1]; y < m_max[1]; y += cellSize)
+		{
+			for (float z = m_min[2]; z < m_max[2]; z += cellSize)
+			{
 
+			}
+		}
+	}
 }
 
 /// <summary>
