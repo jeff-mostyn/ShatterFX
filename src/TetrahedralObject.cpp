@@ -210,6 +210,19 @@ void TetrahedralObject::DumpPoints() {
 	m_max = vec3(FLT_MIN, FLT_MIN, FLT_MIN);
 }
 
+void TetrahedralObject::Draw(GU_Detail* gdp)
+{
+	//for (Tetrahedron *tet : m_tets)
+	//{
+	//	tet->Draw(gdp);
+	//}
+
+	for (int i = 0; i < 4; i++)
+	{
+		m_tets[i]->Draw(gdp);
+	}
+}
+
 const std::vector<vec3> TetrahedralObject::GetPointsSingleton() {
 	return m_points;
 }
@@ -237,17 +250,8 @@ void TetrahedralObject::GenerateFragments(float cellSize)
 
 }
 
-void TetrahedralObject::Draw(GU_Detail *gdp)
-{
-	//for (Tetrahedron *tet : m_tets)
-	//{
-	//	tet->Draw(gdp);
-	//}
+void TetrahedralObject::ComputeGlobalStiffnessMatrix() {
 
-	for (int i = 0; i < 4; i++)
-	{
-		m_tets[i]->Draw(gdp);
-	}
 }
 
 void TetrahedralObject::ComputeMaterialMatrix() {

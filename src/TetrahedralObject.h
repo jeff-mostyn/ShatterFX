@@ -2,6 +2,7 @@
 #include <vector>
 
 #include <Eigen/Dense>
+#include <Eigen/Sparse>
 #include <SYS/SYS_Types.h>
 #include <SOP/SOP_Node.h>
 #include <GU/GU_PrimPoly.h>
@@ -57,15 +58,24 @@ class TetrahedralObject
 public:
 	TetrahedralObject(std::unique_ptr<MaterialData> a_matData);
 	~TetrahedralObject();
+
+	// manipulator functions
 	void AddTet(std::vector<vec3> a_points);
+
+	// output functions
 	void DumpPoints();
+	void Draw(GU_Detail* gdp);
+
+	// accessor functions
 	const std::vector<vec3> GetPointsSingleton();
 	const std::vector<Tetrahedron *> GetTets();
 	const Eigen::MatrixXf GetMaterialMatrix();
 	vec3 GetMin();
 	vec3 GetMax();
+	
+	// Generation/Math functions
 	void GenerateFragments(float cellSize);
-	void Draw(GU_Detail *gdp);
+	void ComputeGlobalStiffnessMatrix();
 
 private:
 	std::vector<vec3> m_points;
@@ -74,6 +84,7 @@ private:
 	std::vector<TetFragment*> m_frags;
 	std::unique_ptr<MaterialData> m_matData;
 	Eigen::VectorXf m_materialMatrix;
+	Eigen::SparseMatrix<float> K_global;
 	vec3 m_min, m_max; // maintain minimum and maximum ranges in the set
 
 	void ComputeMaterialMatrix();
