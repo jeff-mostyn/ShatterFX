@@ -51,6 +51,8 @@ newSopOperator(OP_OperatorTable *table)
 
 static PRM_Name boundsName("bounds", "Voronoi Region Bounds");
 static PRM_Name cellSizeName("cellSize", "Voronoi Cell Size");
+static PRM_Name stiffnessName("stiffness", "Material Stiffness (Young's Modulus)");
+static PRM_Name strainRatioName("strainRatio", "Material Strain Ratio (Poisson)");
 
 
 // SET PARAMETER DEFAULTS
@@ -61,6 +63,8 @@ static PRM_Default boundsDefault[]{
 	PRM_Default(1.0)
 };
 static PRM_Default cellSizeDefault(1.0);
+static PRM_Default stiffnessDefault(70.0);
+static PRM_Default strainRatioDefault(0.24);
 
 // USE PARAM NAMES AND PARAMS TO INITIALIZE
 
