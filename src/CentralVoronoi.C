@@ -306,6 +306,7 @@ SOP_CVD::cookMySop(OP_Context &context)
 		//	GA_Offset ptoff = gdp->appendPoint();
 		//	gdp->setPos3(ptoff, UT_Vector3(vec[0], vec[1], vec[2]));
 		//}
+		obj->GenerateFragments(cellSize);
 		obj->Draw(gdp);
 
 		vec3 min = obj->GetMin();

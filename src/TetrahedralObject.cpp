@@ -217,9 +217,16 @@ void TetrahedralObject::Draw(GU_Detail* gdp)
 	//	tet->Draw(gdp);
 	//}
 
-	for (int i = 0; i < 4; i++)
+	//for (TetFragment* frag : m_frags)
+	//{
+	//	for (Tetrahedron* tet : m_frags->m_tets)
+	//	{
+	//		tet->Draw(gdp);
+	//	}
+	//}
+	for (Tetrahedron* tet : m_frags[0]->m_tets)
 	{
-		m_tets[i]->Draw(gdp);
+		tet->Draw(gdp);
 	}
 }
 
@@ -247,16 +254,32 @@ vec3 TetrahedralObject::GetMax()
 
 void TetrahedralObject::GenerateFragments(float cellSize)
 {
-	for (float x = m_min[0]; x < m_max[0]; x += cellSize)
-	{
-		for (float y = m_min[1]; y < m_max[1]; y += cellSize)
-		{
-			for (float z = m_min[2]; z < m_max[2]; z += cellSize)
-			{
+	m_frags.clear();
 
-			}
+	// Map to group tetrahedra by their voxel grid cell
+	std::unordered_map<std::string, TetFragment*> cellToFragment;
+
+	for (Tetrahedron* tet : m_tets)
+	{
+		vec3 center = tet->GetCenterOfMass();
+
+		// Snap to grid
+		int cx = static_cast<int>((center[0] - m_min[0]) / cellSize);
+		int cy = static_cast<int>((center[1] - m_min[1]) / cellSize);
+		int cz = static_cast<int>((center[2] - m_min[2]) / cellSize);
+
+		// Create a unique key for this grid cell
+		std::string key = std::to_string(cx) + "_" + std::to_string(cy) + "_" + std::to_string(cz);
+
+		if (cellToFragment.find(key) == cellToFragment.end())
+		{
+			cellToFragment[key] = new TetFragment();
+			m_frags.push_back(cellToFragment[key]);
 		}
+
+		cellToFragment[key]->m_tets.push_back(tet);
 	}
+
 }
 
 void TetrahedralObject::ComputeGlobalStiffnessMatrix() {
