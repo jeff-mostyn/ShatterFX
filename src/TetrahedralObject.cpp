@@ -15,7 +15,7 @@ vec3 Tetrahedron::GetCenterOfMass()
 	}
 }
 
-double Tetrahedron::TetrahedralVolume()
+float Tetrahedron::TetrahedralVolume()
 {
 	Eigen::Matrix3f A;
 	// Calculate the Jacobian
@@ -282,8 +282,53 @@ void TetrahedralObject::GenerateFragments(float cellSize)
 
 }
 
+/// <summary>
+/// Computes global stiffness matrix for the tetrahedral object. It is important that this is only called after all tetrahedrons are added and processed.
+/// Additionally, ONLY CALL WHEN NECESSARY. This is an expensive function
+/// </summary>
 void TetrahedralObject::ComputeGlobalStiffnessMatrix() {
+	// the size of the global stiffness matrix is 3n x 3n, where n is the number of points in the construct
+	// this represents the degrees of freedom (x, y, z) for each point
+	int degreeOfFreedomCount = m_points.size() * 3;
 
+	Eigen::SparseMatrix<float> K_global(degreeOfFreedomCount, degreeOfFreedomCount);
+
+	// triplets are a data structure that represents row, column, and value for a place in a matrix
+	// they are good for inserting data into a sparse matrix all at once, so we'll collect everything in a vector of them and then insert
+	std::vector<Eigen::Triplet<float>> triplets;
+
+	for (size_t t = 0; t < m_tets.size(); t++) {
+		const Eigen::MatrixXf& K_local = m_tets[t]->K_e;
+		const std::vector<vec3>& tetVertices = m_tets[t]->m_points;
+
+		// Loop through the local stiffness matrix and map to global
+		// i and j are up to 4, because they are multiplied by 3 to get the "start" of each point's data in the local stiffness matrix, which is 12x12
+		// those are 12x12 because the tetrahedrons have 4 points * 3 degrees of freedom.
+		// di and dj are "offsets" that will specify the x, y, or z of each point
+		for (int i = 0; i < 4; ++i) {
+			for (int j = 0; j < 4; ++j) {
+				for (int di = 0; di < 3; ++di) {
+					for (int dj = 0; dj < 3; ++dj) {
+						// based on the index of the tetrahedrons' vertices in the vertex list for the whole object
+						// assign a row and column in the global matrix for this data to be stored in
+						int global_row = m_pointIndices[tetVertices[i]] * 3 + di;
+						int global_col = m_pointIndices[tetVertices[j]] * 3 + dj;
+
+						float value = K_local(i * 3 + di, j * 3 + dj);
+						if (value != 0.0) {
+							triplets.emplace_back(global_row, global_col, value);
+						}
+					}
+				}
+			}
+		}
+	}
+
+	// Set the values in the sparse matrix
+	// setFromTriplets will apparently automatically handle accumulation, if that is needed
+	K_global.setFromTriplets(triplets.begin(), triplets.end());
+
+	m_globalStiffness = K_global;
 }
 
 void TetrahedralObject::ComputeMaterialMatrix() {
