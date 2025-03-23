@@ -75,6 +75,7 @@ public:
 	
 	// Generation/Math functions
 	void GenerateFragments(float cellSize);
+	void MoveFragments(float distanceFromCenter);
 	void ComputeGlobalStiffnessMatrix();
 
 private:

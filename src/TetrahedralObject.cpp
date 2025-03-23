@@ -217,17 +217,17 @@ void TetrahedralObject::Draw(GU_Detail* gdp)
 	//	tet->Draw(gdp);
 	//}
 
-	//for (TetFragment* frag : m_frags)
-	//{
-	//	for (Tetrahedron* tet : m_frags->m_tets)
-	//	{
-	//		tet->Draw(gdp);
-	//	}
-	//}
-	for (Tetrahedron* tet : m_frags[0]->m_tets)
+	for (TetFragment* frag : m_frags)
 	{
-		tet->Draw(gdp);
+		for (Tetrahedron* tet : frag->m_tets)
+		{
+			tet->Draw(gdp);
+		}
 	}
+	//for (Tetrahedron* tet : m_frags[0]->m_tets)
+	//{
+	//	tet->Draw(gdp);
+	//}
 }
 
 const std::vector<vec3> TetrahedralObject::GetPointsSingleton() {
@@ -280,6 +280,42 @@ void TetrahedralObject::GenerateFragments(float cellSize)
 		cellToFragment[key]->m_tets.push_back(tet);
 	}
 
+}
+
+void TetrahedralObject::MoveFragments(float distanceFromCenter)
+{
+	// Step 1: Compute center of the full mesh
+	vec3 objectCenter = 0.5f * (m_min + m_max);
+
+	// Step 2: Loop through fragments
+	for (TetFragment* frag : m_frags)
+	{
+		// Compute average center of all tets in the fragment
+		vec3 fragCenter = vec3Zero;
+		int count = 0;
+		for (Tetrahedron* tet : frag->m_tets)
+		{
+			fragCenter += tet->GetCenterOfMass();
+			count++;
+		}
+		if (count == 0) continue;
+		fragCenter /= static_cast<float>(count);
+
+		// Step 3: Compute direction from object center to fragment center
+		vec3 direction = fragCenter - objectCenter;
+		float length = direction.Length();
+		if (length == 0.0f) continue; // Prevent divide by zero
+		direction /= length; // Normalize
+
+		// Step 4: Move each point in the fragment
+		for (Tetrahedron* tet : frag->m_tets)
+		{
+			for (vec3& pt : tet->m_points)
+			{
+				pt += direction * distanceFromCenter;
+			}
+		}
+	}
 }
 
 /// <summary>
