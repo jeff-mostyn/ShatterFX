@@ -88,6 +88,14 @@ namespace HDK_Sample {
             return vec3(x, y, z);
         }
 
+        fpreal STIFFNESS(fpreal t) {
+            return evalFloat("stiffness", 0, t);
+        }
+
+        fpreal STRAIN_RATIO(fpreal t) {
+            return evalFloat("strainRatio", 0, t);
+        }
+
         void PopulateVoronoiPoints(vec3 a_bounds, float a_cellSize);
         vec3 GeneratePerlinNoise(vec3 a_cell);
         vec3 Noise3D(vec3 a_cell);

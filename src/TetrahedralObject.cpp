@@ -130,11 +130,13 @@ void Tetrahedron::ComputeCoefficients() {
 	B = Strain_Disp;
 }
 
-TetrahedralObject::TetrahedralObject() : m_min(FLT_MAX, FLT_MAX, FLT_MAX), m_max(FLT_MIN, FLT_MIN, FLT_MIN)
+TetrahedralObject::TetrahedralObject(std::unique_ptr<MaterialData> a_matData) : m_min(FLT_MAX, FLT_MAX, FLT_MAX), m_max(FLT_MIN, FLT_MIN, FLT_MIN)
 {
 	m_tets = std::vector<Tetrahedron *>();
 	// m_min = vec3(FLT_MAX, FLT_MAX, FLT_MAX);
 	// m_max = vec3(FLT_MIN, FLT_MIN, FLT_MIN);
+
+	m_matData = std::move(a_matData);
 }
 
 TetrahedralObject::~TetrahedralObject()
@@ -162,7 +164,7 @@ void checkTetMinMax(Tetrahedron *tet, vec3 &min, vec3 &max)
 
 void TetrahedralObject::AddTet(std::vector<vec3> a_points)
 {
-	Tetrahedron *tet = new Tetrahedron(a_points);
+	Tetrahedron *tet = new Tetrahedron(a_points, this);
 
 	m_tets.push_back(tet);
 

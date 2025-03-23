@@ -75,6 +75,8 @@ PRM_Template SOP_CVD::myTemplateList[] = {
 		&boundsName,    // Parameter name
 		boundsDefault),
 	PRM_Template(PRM_FLT, 1, &cellSizeName, &cellSizeDefault),
+	PRM_Template(PRM_FLT, 1, &stiffnessName, &stiffnessDefault),
+	PRM_Template(PRM_FLT, 1, &strainRatioName, &strainRatioDefault),
 
     PRM_Template()
 };
@@ -181,6 +183,12 @@ SOP_CVD::cookMySop(OP_Context &context)
 	float cellSize;
 	cellSize = CELL_SIZE(now);
 
+	float stiffness;
+	stiffness = STIFFNESS(now);
+
+	float strainRatio;
+	strainRatio = STRAIN_RATIO(now);
+
 	//std::cout << "---------------------------------------------" << std::endl;
 
 	// PROCESS DATA HERE
@@ -246,7 +254,11 @@ SOP_CVD::cookMySop(OP_Context &context)
 		// ----------------------------------------------------------------------------------
 
 		// DYNAMIC MEMORY - DO NOT LEAVE FUNCTION WITHOUT DELETING
-		TetrahedralObject* obj = new TetrahedralObject();
+		std::unique_ptr<MaterialData> matData = std::make_unique<MaterialData>();
+		matData->stiffness = stiffness;
+		matData->strainRatio = strainRatio;
+
+		TetrahedralObject* obj = new TetrahedralObject(std::move(matData));
 		obj->DumpPoints();
 
 		GA_Iterator primIter(gdp->getPrimitiveRange());
