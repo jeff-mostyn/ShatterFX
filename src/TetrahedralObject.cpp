@@ -183,11 +183,13 @@ void TetrahedralObject::AddTet(std::vector<vec3> a_points)
 
 	m_tets.push_back(tet);
 
-	for (const vec3 &point : tet->m_points)
-	{
-		if (m_pointSet.count(point) == 0)
-		{
-			m_pointSet.insert(point);
+	// check whether each point in the tetrahedron has been accounted for yet
+	// if not, add it and its index to unordered_map for tracking, and add it to the vector of points
+	for (const vec3 &point : tet->m_points) {
+		if (!m_pointIndices.count(point)) {
+			int nextIndex = m_points.size();
+			m_pointIndices[point] = nextIndex;
+			m_points.push_back(point);
 		}
 	}
 
@@ -202,13 +204,14 @@ void TetrahedralObject::AddTet(std::vector<vec3> a_points)
 }
 
 void TetrahedralObject::DumpPoints() {
-	m_pointSet.clear();
+	m_points.clear();
+	m_pointIndices.clear();
 	m_min = vec3(FLT_MAX, FLT_MAX, FLT_MAX);
 	m_max = vec3(FLT_MIN, FLT_MIN, FLT_MIN);
 }
 
-const std::set<vec3> TetrahedralObject::GetPointsSingleton() {
-	return m_pointSet;
+const std::vector<vec3> TetrahedralObject::GetPointsSingleton() {
+	return m_points;
 }
 
 const std::vector<Tetrahedron *> TetrahedralObject::GetTets() {

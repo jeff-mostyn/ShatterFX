@@ -59,7 +59,7 @@ public:
 	~TetrahedralObject();
 	void AddTet(std::vector<vec3> a_points);
 	void DumpPoints();
-	const std::set<vec3> GetPointsSingleton();
+	const std::vector<vec3> GetPointsSingleton();
 	const std::vector<Tetrahedron *> GetTets();
 	const Eigen::MatrixXf GetMaterialMatrix();
 	vec3 GetMin();
@@ -68,8 +68,8 @@ public:
 	void Draw(GU_Detail *gdp);
 
 private:
-	std::set<vec3> m_pointSet; // we maintain a set so we make sure there are no duplicate points
-							   // do we need this? would it be better to have duplicate points so things can be broken more easily?
+	std::vector<vec3> m_points;
+	std::unordered_map<vec3, int> m_pointIndices;
 	std::vector<Tetrahedron *> m_tets;
 	std::vector<TetFragment*> m_frags;
 	std::unique_ptr<MaterialData> m_matData;
