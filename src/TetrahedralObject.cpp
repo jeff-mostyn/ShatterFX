@@ -1,5 +1,8 @@
 #include "TetrahedralObject.h"
 
+// -----------------------------------------------------
+// -------------------- TETRAHEDRON --------------------
+// -----------------------------------------------------
 vec3 Tetrahedron::GetCenterOfMass()
 {
 	if (m_points.size() == 4)
@@ -128,7 +131,18 @@ void Tetrahedron::ComputeCoefficients() {
 	};
 
 	B = Strain_Disp;
+
+	// Calculate the stiffness matrix for this tetrahedron
+	// K_e = V * B^T * D * B
+	// V - Volume
+	// B - Strain-displacement matrix
+	// D - Material stiffness matrix
+	K_e = V * B.transpose() * m_myObj->GetMaterialMatrix() * B;
 }
+
+// ------------------------------------------------------------
+// -------------------- TETRAHEDRAL OBJECT --------------------
+// ------------------------------------------------------------
 
 TetrahedralObject::TetrahedralObject(std::unique_ptr<MaterialData> a_matData) : m_min(FLT_MAX, FLT_MAX, FLT_MAX), m_max(FLT_MIN, FLT_MIN, FLT_MIN)
 {
@@ -137,6 +151,7 @@ TetrahedralObject::TetrahedralObject(std::unique_ptr<MaterialData> a_matData) : 
 	// m_max = vec3(FLT_MIN, FLT_MIN, FLT_MIN);
 
 	m_matData = std::move(a_matData);
+	ComputeMaterialMatrix();
 }
 
 TetrahedralObject::~TetrahedralObject()
@@ -186,21 +201,22 @@ void TetrahedralObject::AddTet(std::vector<vec3> a_points)
 	m_max[2] = max[2] > m_max[2] ? max[2] : m_max[2];
 }
 
-void TetrahedralObject::DumpPoints()
-{
+void TetrahedralObject::DumpPoints() {
 	m_pointSet.clear();
 	m_min = vec3(FLT_MAX, FLT_MAX, FLT_MAX);
 	m_max = vec3(FLT_MIN, FLT_MIN, FLT_MIN);
 }
 
-std::set<vec3> TetrahedralObject::GetPointsSingleton()
-{
+const std::set<vec3> TetrahedralObject::GetPointsSingleton() {
 	return m_pointSet;
 }
 
-std::vector<Tetrahedron *> TetrahedralObject::GetTets()
-{
+const std::vector<Tetrahedron *> TetrahedralObject::GetTets() {
 	return m_tets;
+}
+
+const Eigen::MatrixXf TetrahedralObject::GetMaterialMatrix() {
+	return m_materialMatrix;
 }
 
 vec3 TetrahedralObject::GetMin()
@@ -229,4 +245,22 @@ void TetrahedralObject::Draw(GU_Detail *gdp)
 	{
 		m_tets[i]->Draw(gdp);
 	}
+}
+
+void TetrahedralObject::ComputeMaterialMatrix() {
+	float E = m_matData->stiffness;
+	float v = m_matData->strainRatio;
+
+	// this is the 3D version of the material matrix D for Hooke's Law
+	Eigen::MatrixXf D {
+		{ 1.f - v, v, v, 0.f, 0.f, 0.f },
+		{ v, 1.f - v, v, 0.f, 0.f, 0.f },
+		{ v, v, 1.f - v, 0.f, 0.f, 0.f },
+		{ 0.f, 0.f, 0.f, (1.f - (2.f * v) / 2.f), 0.f, 0.f },
+		{ 0.f, 0.f, 0.f, 0.f, (1.f - (2.f * v) / 2.f), 0.f },
+		{ 0.f, 0.f, 0.f, 0.f, 0.f, (1.f - (2.f * v) / 2.f) }
+	};
+	D *= (E / ((1.f + v) * (1.f - (2.f * v))));
+
+	m_materialMatrix = D;
 }

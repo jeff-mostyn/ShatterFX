@@ -23,18 +23,20 @@ struct MaterialData {
 
 struct Tetrahedron
 {
-	TetrahedralObject* myObj;
+	TetrahedralObject* m_myObj;
 	std::vector<vec3> m_points;
 	std::vector<float> a, b, c, d; 	// coefficients for shape function
 	Eigen::Matrix3f J;				// Jacobian
 	Eigen::MatrixXf B;				// strain-displacement matrix
+	Eigen::MatrixXf K_e;			// Element Stiffness Matrix
 	double V = 0;					// Volume
 
 	Tetrahedron(std::vector<vec3> a_points, TetrahedralObject* a_obj)
 	{
-		myObj = a_obj;
+		m_myObj = a_obj;
 		m_points = std::vector<vec3>(a_points);
-		//ComputeCoefficients();
+		TetrahedralVolume();
+		ComputeCoefficients();
 	}
 	vec3 GetCenterOfMass();
 	double TetrahedralVolume();
@@ -57,8 +59,9 @@ public:
 	~TetrahedralObject();
 	void AddTet(std::vector<vec3> a_points);
 	void DumpPoints();
-	std::set<vec3> GetPointsSingleton();
-	std::vector<Tetrahedron *> GetTets();
+	const std::set<vec3> GetPointsSingleton();
+	const std::vector<Tetrahedron *> GetTets();
+	const Eigen::MatrixXf GetMaterialMatrix();
 	vec3 GetMin();
 	vec3 GetMax();
 	void GenerateFragments(float cellSize);
@@ -70,5 +73,8 @@ private:
 	std::vector<Tetrahedron *> m_tets;
 	std::vector<TetFragment*> m_frags;
 	std::unique_ptr<MaterialData> m_matData;
+	Eigen::VectorXf m_materialMatrix;
 	vec3 m_min, m_max; // maintain minimum and maximum ranges in the set
+
+	void ComputeMaterialMatrix();
 };
