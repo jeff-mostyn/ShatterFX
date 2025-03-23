@@ -30,7 +30,7 @@ struct Tetrahedron
 	Eigen::Matrix3f J;				// Jacobian
 	Eigen::MatrixXf B;				// strain-displacement matrix
 	Eigen::MatrixXf K_e;			// Element Stiffness Matrix
-	double V = 0;					// Volume
+	float V = 0;					// Volume
 
 	Tetrahedron(std::vector<vec3> a_points, TetrahedralObject* a_obj)
 	{
@@ -40,7 +40,7 @@ struct Tetrahedron
 		ComputeCoefficients();
 	}
 	vec3 GetCenterOfMass();
-	double TetrahedralVolume();
+	float TetrahedralVolume();
 	void Draw(GU_Detail *gdp);
 	void ComputeCoefficients();
 };
@@ -84,7 +84,7 @@ private:
 	std::vector<TetFragment*> m_frags;
 	std::unique_ptr<MaterialData> m_matData;
 	Eigen::VectorXf m_materialMatrix;
-	Eigen::SparseMatrix<float> K_global;
+	Eigen::SparseMatrix<float> m_globalStiffness;
 	vec3 m_min, m_max; // maintain minimum and maximum ranges in the set
 
 	void ComputeMaterialMatrix();
