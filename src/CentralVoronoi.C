@@ -51,6 +51,8 @@ newSopOperator(OP_OperatorTable *table)
 
 static PRM_Name boundsName("bounds", "Voronoi Region Bounds");
 static PRM_Name cellSizeName("cellSize", "Voronoi Cell Size");
+static PRM_Name stiffnessName("stiffness", "Material Stiffness (Young's Modulus)");
+static PRM_Name strainRatioName("strainRatio", "Material Strain Ratio (Poisson)");
 
 
 // SET PARAMETER DEFAULTS
@@ -61,6 +63,8 @@ static PRM_Default boundsDefault[]{
 	PRM_Default(1.0)
 };
 static PRM_Default cellSizeDefault(1.0);
+static PRM_Default stiffnessDefault(70.0);
+static PRM_Default strainRatioDefault(0.24);
 
 // USE PARAM NAMES AND PARAMS TO INITIALIZE
 
@@ -71,6 +75,8 @@ PRM_Template SOP_CVD::myTemplateList[] = {
 		&boundsName,    // Parameter name
 		boundsDefault),
 	PRM_Template(PRM_FLT, 1, &cellSizeName, &cellSizeDefault),
+	PRM_Template(PRM_FLT, 1, &stiffnessName, &stiffnessDefault),
+	PRM_Template(PRM_FLT, 1, &strainRatioName, &strainRatioDefault),
 
     PRM_Template()
 };
@@ -177,6 +183,12 @@ SOP_CVD::cookMySop(OP_Context &context)
 	float cellSize;
 	cellSize = CELL_SIZE(now);
 
+	float stiffness;
+	stiffness = STIFFNESS(now);
+
+	float strainRatio;
+	strainRatio = STRAIN_RATIO(now);
+
 	//std::cout << "---------------------------------------------" << std::endl;
 
 	// PROCESS DATA HERE
@@ -242,7 +254,11 @@ SOP_CVD::cookMySop(OP_Context &context)
 		// ----------------------------------------------------------------------------------
 
 		// DYNAMIC MEMORY - DO NOT LEAVE FUNCTION WITHOUT DELETING
-		TetrahedralObject* obj = new TetrahedralObject();
+		std::unique_ptr<MaterialData> matData = std::make_unique<MaterialData>();
+		matData->stiffness = stiffness;
+		matData->strainRatio = strainRatio;
+
+		TetrahedralObject* obj = new TetrahedralObject(std::move(matData));
 		obj->DumpPoints();
 
 		GA_Iterator primIter(gdp->getPrimitiveRange());

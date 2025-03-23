@@ -180,6 +180,22 @@ inline ostream& operator << (ostream& ostrm, const vec3& v)
    return ostrm;
 }
 
+// THIS IS A HASH SO THAT std::unordered_map CAN TAKE vec3 AS A KEY
+template <>
+struct std::hash<vec3>
+{
+	std::size_t operator()(const vec3& k) const {
+		using std::hash;
+
+		// Compute individual hash values for first,
+		// second and third and combine them using XOR
+		// and bit shifting:
+
+		return ((hash<double>()(k.n[0])
+			^ (hash<double>()(k.n[1]) << 1)) >> 1)
+			^ (hash<double>()(k.n[2]) << 1);
+	}
+};
 
 class vec4 
 {
