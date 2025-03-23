@@ -27,6 +27,14 @@ struct Tetrahedron
 	void ComputeCoefficients();
 };
 
+struct TetFragment
+{
+	//vec3 m_min, m_max; // maintain minimum and maximum range of fragment
+	std::vector<Tetrahedron*> m_tets;
+	//vec3 GetMin();
+	//vec3 GetMax();
+};
+
 class TetrahedralObject
 {
 public:
@@ -38,11 +46,13 @@ public:
 	std::vector<Tetrahedron *> GetTets();
 	vec3 GetMin();
 	vec3 GetMax();
+	void GenerateFragments(float cellSize);
 	void Draw(GU_Detail *gdp);
 
 private:
 	std::set<vec3> m_pointSet; // we maintain a set so we make sure there are no duplicate points
 							   // do we need this? would it be better to have duplicate points so things can be broken more easily?
 	std::vector<Tetrahedron *> m_tets;
+	std::vector<TetFragment*> m_frags;
 	vec3 m_min, m_max; // maintain minimum and maximum ranges in the set
 };
