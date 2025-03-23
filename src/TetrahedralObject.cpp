@@ -211,10 +211,20 @@ vec3 TetrahedralObject::GetMax()
 	return m_max;
 }
 
+void TetrahedralObject::GenerateFragments(float cellSize)
+{
+
+}
+
 void TetrahedralObject::Draw(GU_Detail *gdp)
 {
-	for (Tetrahedron *tet : m_tets)
+	//for (Tetrahedron *tet : m_tets)
+	//{
+	//	tet->Draw(gdp);
+	//}
+
+	for (int i = 0; i < 4; i++)
 	{
-		tet->Draw(gdp);
+		m_tets[i]->Draw(gdp);
 	}
 }
