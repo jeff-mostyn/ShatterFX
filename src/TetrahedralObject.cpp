@@ -1,7 +1,9 @@
 #include "TetrahedralObject.h"
 
 // -----------------------------------------------------
+// 
 // -------------------- TETRAHEDRON --------------------
+// 
 // -----------------------------------------------------
 vec3 Tetrahedron::GetCenterOfMass()
 {
@@ -13,6 +15,13 @@ vec3 Tetrahedron::GetCenterOfMass()
 	{
 		return vec3Zero;
 	}
+}
+
+// Implement this however
+std::vector<vec3> Tetrahedron::GetDisplacedVertices() {
+
+
+	return std::vector<vec3>();
 }
 
 float Tetrahedron::TetrahedralVolume()
@@ -140,8 +149,41 @@ void Tetrahedron::ComputeCoefficients() {
 	K_e = V * B.transpose() * m_myObj->GetMaterialMatrix() * B;
 }
 
+void Tetrahedron::ComputeStrainTensor() {
+	// step 1: compute inverse jacobian of the undeformed tetrahedron
+	Eigen::Matrix3f J_inv = J.inverse();
+
+	// step 2: compute shape function gradient matrix. Local gradients of shape functions
+	// are constant for a standard tetrahedron
+	Eigen::Matrix<double, 3, 4> localGrad;
+	localGrad << -1, 1, 0, 0,
+				-1, 0, 1, 0,
+				-1, 0, 0, 1;
+
+	// step 3: compute deformation gradient F for the tetrahedron
+	// this is the 3D Identity matrix plus the sum of the product of each vertex displacement 
+	// and the sequential columns (transposed to rows) of the local shape function gradient matrix
+	std::vector<vec3> displacedVertices = GetDisplacedVertices();
+	Eigen::Matrix3f F = Eigen::Matrix3f::Identity();
+	for (int i = 0; i < 4; ++i) {
+		Eigen::Vector3f vertDisp = {
+			displacedVertices[i][0],
+			displacedVertices[i][1],
+			displacedVertices[i][2]
+		};
+		// this is adding the product of a 3x1 * 1x3, which gives a 3x3 matrix.
+		F += vertDisp * localGrad.col(i).transpose();
+	}
+
+	// Step 4: compute Green-Lagrange Strain Tensor
+	// Strain Tensor = (1/2) * ((F^T * F) - I)
+	m_StrainTensor = 0.5 * ((F.transpose() * F) - Eigen::Matrix3f::Identity());
+}
+
 // ------------------------------------------------------------
+// 
 // -------------------- TETRAHEDRAL OBJECT --------------------
+// 
 // ------------------------------------------------------------
 
 TetrahedralObject::TetrahedralObject(std::unique_ptr<MaterialData> a_matData) : m_min(FLT_MAX, FLT_MAX, FLT_MAX), m_max(FLT_MIN, FLT_MIN, FLT_MIN)
