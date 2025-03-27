@@ -1,4 +1,4 @@
-#include "TetrahedralObject.h"
+﻿#include "TetrahedralObject.h"
 
 // -----------------------------------------------------
 // 
@@ -155,10 +155,10 @@ void Tetrahedron::ComputeStrainTensor() {
 
 	// step 2: compute shape function gradient matrix. Local gradients of shape functions
 	// are constant for a standard tetrahedron
-	Eigen::Matrix<double, 3, 4> localGrad;
-	localGrad << -1, 1, 0, 0,
-				-1, 0, 1, 0,
-				-1, 0, 0, 1;
+	Eigen::Matrix<float, 3, 4> localGrad;
+	localGrad << -1.0, 1.0, 0.0, 0.0,
+				-1.0, 0.0, 1.0, 0.0,
+				-1.0, 0.0, 0.0, 1.0;
 
 	// step 3: compute deformation gradient F for the tetrahedron
 	// this is the 3D Identity matrix plus the sum of the product of each vertex displacement 
@@ -167,9 +167,10 @@ void Tetrahedron::ComputeStrainTensor() {
 	Eigen::Matrix3f F = Eigen::Matrix3f::Identity();
 	for (int i = 0; i < 4; ++i) {
 		Eigen::Vector3f vertDisp = {
-			displacedVertices[i][0],
-			displacedVertices[i][1],
-			displacedVertices[i][2]
+			// the compiler yelled at me until I static casted these, even though Idk why they'd be doubles
+			static_cast<float>(displacedVertices[i][0]),
+			static_cast<float>(displacedVertices[i][1]),
+			static_cast<float>(displacedVertices[i][2])
 		};
 		// this is adding the product of a 3x1 * 1x3, which gives a 3x3 matrix.
 		F += vertDisp * localGrad.col(i).transpose();
@@ -178,6 +179,30 @@ void Tetrahedron::ComputeStrainTensor() {
 	// Step 4: compute Green-Lagrange Strain Tensor
 	// Strain Tensor = (1/2) * ((F^T * F) - I)
 	m_StrainTensor = 0.5 * ((F.transpose() * F) - Eigen::Matrix3f::Identity());
+}
+
+/// <summary>
+/// To compute Stress Tensor, we convert Strain Tensor into a 6x1 vector in Voigt notation
+/// This is multiplied onto the already created Material Stiffness Matrix to create a 6x1 Stress Tensor in Voigt notation
+/// We then convert this to a 3x3 matrix and store it.
+/// </summary>
+void Tetrahedron::ComputeStressTensor() {
+	// create strain vector
+	Eigen::Matrix<float, 6, 1> strainVec;
+	strainVec << m_StrainTensor(0, 0),		// ε_xx
+				m_StrainTensor(1, 1),		// ε_yy
+				m_StrainTensor(2, 2),		// ε_zz
+				2 * m_StrainTensor(1, 2),	// γ_yz (2 * ε_yz)
+				2 * m_StrainTensor(0, 2),	// γ_xz (2 * ε_xz)
+				2 * m_StrainTensor(0, 1);	// γ_xy (2 * ε_xy)
+
+	// multiply onto Element Stiffness Matrix to get stress vector
+	Eigen::Matrix<float, 6, 1> stressVec = K_e * strainVec;
+
+	m_StressTensor = Eigen::Matrix3f(); 
+	m_StressTensor << stressVec(0), stressVec(5) / 2.0, stressVec(4) / 2.0,
+					stressVec(5) / 2.0, stressVec(1), stressVec(3) / 2.0,
+					stressVec(4) / 2.0, stressVec(3) / 2.0, stressVec(2);
 }
 
 // ------------------------------------------------------------
