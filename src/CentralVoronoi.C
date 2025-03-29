@@ -300,6 +300,10 @@ SOP_CVD::cookMySop(OP_Context &context)
 
 		std::cout << "-----------" << std::endl;
 
+		// Compute all information to generate voronoi points and whatnot
+		obj->ComputeMaterialInformation();
+		//obj->RegisterImpact({ -1, 0, 0 }, 10.0, {1, 0, 0});
+
 		// print singleton points
 		//for (vec3 vec : obj->GetPointsSingleton()) {
 		//	//std::cout << (vec)[0] << "  " << (vec)[1] << "  " << (vec)[2] << std::endl;

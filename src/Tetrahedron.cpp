@@ -22,10 +22,15 @@ vec3 Tetrahedron::GetCenterOfMass()
 }
 
 // Implement this however
-std::vector<vec3> Tetrahedron::GetDisplacedVertices() {
+Eigen::Vector3f Tetrahedron::GetVertexDisplacements(int index) {
+	const Eigen::VectorXf* displacements = m_myObj->GetDisplacementVector();
 
+	Eigen::Vector3f disp;
+	disp << (*displacements)(index * 3), 
+		(*displacements)((index * 3) + 1), 
+		(*displacements)((index * 3) + 2);
 
-	return std::vector<vec3>();
+	return disp;
 }
 
 float Tetrahedron::TetrahedralVolume()
@@ -150,7 +155,7 @@ void Tetrahedron::ComputeCoefficients() {
 	// V - Volume
 	// B - Strain-displacement matrix
 	// D - Material stiffness matrix
-	K_e = V * B.transpose() * m_myObj->GetMaterialMatrix() * B;
+	K_e = V * B.transpose() * (*m_myObj->GetMaterialMatrix()) * B;
 }
 
 void Tetrahedron::ComputeStrainTensor() {
@@ -169,17 +174,11 @@ void Tetrahedron::ComputeStrainTensor() {
 	// step 3: compute deformation gradient F for the tetrahedron
 	// this is the 3D Identity matrix plus the sum of the product of each vertex displacement 
 	// and the sequential columns (transposed to rows) of the local shape function gradient matrix
-	std::vector<vec3> displacedVertices = GetDisplacedVertices();
 	Eigen::Matrix3f F = Eigen::Matrix3f::Identity(); // I think F is the Deformation gradient
 	for (int i = 0; i < 4; ++i) {
-		Eigen::Vector3f vertDisp = {
-			// the compiler yelled at me until I static casted these, even though Idk why they'd be doubles
-			static_cast<float>(displacedVertices[i][0]),
-			static_cast<float>(displacedVertices[i][1]),
-			static_cast<float>(displacedVertices[i][2])
-		};
+		Eigen::Vector3f delta = GetVertexDisplacements(i);
 		// this is adding the product of a 3x1 * 1x3, which gives a 3x3 matrix.
-		F += vertDisp * localGrad.col(i).transpose();
+		F += delta * localGrad.col(i).transpose();
 	}
 
 	// Step 4: compute Green-Lagrange Strain Tensor

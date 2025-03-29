@@ -100,8 +100,12 @@ const std::vector<Tetrahedron *> TetrahedralObject::GetTets() {
 	return m_tets;
 }
 
-const Eigen::MatrixXf TetrahedralObject::GetMaterialMatrix() {
-	return m_materialMatrix;
+const Eigen::MatrixXf* TetrahedralObject::GetMaterialMatrix() {
+	return &m_materialMatrix;
+}
+
+const Eigen::VectorXf* TetrahedralObject::GetDisplacementVector() {
+	return &m_pointDisplacementVector;
 }
 
 vec3 TetrahedralObject::GetMin()
@@ -112,6 +116,41 @@ vec3 TetrahedralObject::GetMin()
 vec3 TetrahedralObject::GetMax()
 {
 	return m_max;
+}
+
+/// <summary>
+/// Entry point to the calculation. This will start function flow for running fracture sims.
+/// </summary>
+/// <param name="a_dir">NORMALIZED force direction</param>
+/// <param name="a_mag">Impact force magnitude</param>
+/// <param name="a_location">Desired impact location in 3D space. Closest vertex will be determined</param>
+void TetrahedralObject::RegisterImpact(vec3 a_dir, float a_mag, vec3 a_location) {
+	Eigen::VectorXf f_global = Eigen::VectorXf::Zero(3 * m_points.size());
+
+	// get closest point to impact
+	int closestIndex = -1;
+	float minDist = FLT_MAX;
+
+	for (int i = 0; i < m_points.size(); ++i) {
+		float dist = (m_points[i] - a_location).Length();
+
+		if (dist < minDist) {
+			minDist = dist;
+			closestIndex = i;
+		}
+	}
+
+	// Apply force at that point
+	if (closestIndex >= 0) {
+		vec3 force = a_dir * a_mag;
+
+		f_global(3 * closestIndex + 0) = force[0];
+		f_global(3 * closestIndex + 1) = force[1];
+		f_global(3 * closestIndex + 2) = force[2];
+	}
+
+	// Compute vector of vertex displacements
+	m_pointDisplacementVector = SolveFEM(f_global);
 }
 
 void TetrahedralObject::GenerateFragments(float cellSize)
@@ -180,6 +219,29 @@ void TetrahedralObject::MoveFragments(float distanceFromCenter)
 	}
 }
 
+void TetrahedralObject::ComputeMaterialInformation() {
+	ComputeMaterialMatrix();
+	ComputeGlobalStiffnessMatrix();
+}
+
+void TetrahedralObject::ComputeMaterialMatrix() {
+	float E = m_matData->stiffness;
+	float v = m_matData->strainRatio;
+
+	// this is the 3D version of the material matrix D for Hooke's Law
+	Eigen::MatrixXf D{
+		{ 1.f - v, v, v, 0.f, 0.f, 0.f },
+		{ v, 1.f - v, v, 0.f, 0.f, 0.f },
+		{ v, v, 1.f - v, 0.f, 0.f, 0.f },
+		{ 0.f, 0.f, 0.f, (1.f - (2.f * v) / 2.f), 0.f, 0.f },
+		{ 0.f, 0.f, 0.f, 0.f, (1.f - (2.f * v) / 2.f), 0.f },
+		{ 0.f, 0.f, 0.f, 0.f, 0.f, (1.f - (2.f * v) / 2.f) }
+	};
+	D *= (E / ((1.f + v) * (1.f - (2.f * v))));
+
+	m_materialMatrix = D;
+}
+
 /// <summary>
 /// Computes global stiffness matrix for the tetrahedral object. It is important that this is only called after all tetrahedrons are added and processed.
 /// Additionally, ONLY CALL WHEN NECESSARY. This is an expensive function
@@ -229,20 +291,9 @@ void TetrahedralObject::ComputeGlobalStiffnessMatrix() {
 	m_globalStiffness = K_global;
 }
 
-void TetrahedralObject::ComputeMaterialMatrix() {
-	float E = m_matData->stiffness;
-	float v = m_matData->strainRatio;
-
-	// this is the 3D version of the material matrix D for Hooke's Law
-	Eigen::MatrixXf D {
-		{ 1.f - v, v, v, 0.f, 0.f, 0.f },
-		{ v, 1.f - v, v, 0.f, 0.f, 0.f },
-		{ v, v, 1.f - v, 0.f, 0.f, 0.f },
-		{ 0.f, 0.f, 0.f, (1.f - (2.f * v) / 2.f), 0.f, 0.f },
-		{ 0.f, 0.f, 0.f, 0.f, (1.f - (2.f * v) / 2.f), 0.f },
-		{ 0.f, 0.f, 0.f, 0.f, 0.f, (1.f - (2.f * v) / 2.f) }
-	};
-	D *= (E / ((1.f + v) * (1.f - (2.f * v))));
-
-	m_materialMatrix = D;
-}
+Eigen::VectorXf TetrahedralObject::SolveFEM(const Eigen::VectorXf& a_Force) {
+	Eigen::SparseLU<Eigen::SparseMatrix<float>> solver;
+	solver.analyzePattern(m_globalStiffness);
+	solver.factorize(m_globalStiffness);
+	return solver.solve(a_Force);
+};

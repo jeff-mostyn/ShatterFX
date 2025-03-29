@@ -34,7 +34,7 @@ struct Tetrahedron
 		ComputeCoefficients();
 	}
 	vec3 GetCenterOfMass();
-	std::vector<vec3> GetDisplacedVertices();
+	Eigen::Vector3f GetVertexDisplacements(int index);
 	float TetrahedralVolume();
 	void Draw(GU_Detail* gdp);
 
