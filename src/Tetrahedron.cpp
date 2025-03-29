@@ -22,8 +22,10 @@ vec3 Tetrahedron::GetCenterOfMass()
 }
 
 // Implement this however
-Eigen::Vector3f Tetrahedron::GetVertexDisplacements(int index) {
+Eigen::Vector3f Tetrahedron::GetVertexDisplacements(int a_myPointIndex) {
 	const Eigen::VectorXf* displacements = m_myObj->GetDisplacementVector();
+
+	int index = m_myObj->GetVertexIndex(m_points[a_myPointIndex]);
 
 	Eigen::Vector3f disp;
 	disp << (*displacements)(index * 3), 

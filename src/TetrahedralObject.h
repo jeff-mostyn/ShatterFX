@@ -51,6 +51,7 @@ public:
 	const std::vector<Tetrahedron *> GetTets();
 	const Eigen::MatrixXf* GetMaterialMatrix();
 	const Eigen::VectorXf* GetDisplacementVector();
+	const int GetVertexIndex(vec3 a_vertex);
 	vec3 GetMin();
 	vec3 GetMax();
 	void RegisterImpact(vec3 a_dir, float a_mag, vec3 a_location);

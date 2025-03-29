@@ -108,6 +108,10 @@ const Eigen::VectorXf* TetrahedralObject::GetDisplacementVector() {
 	return &m_pointDisplacementVector;
 }
 
+const int TetrahedralObject::GetVertexIndex(vec3 a_vertex) {
+	return m_pointIndices[a_vertex];
+}
+
 vec3 TetrahedralObject::GetMin()
 {
 	return m_min;
