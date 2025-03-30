@@ -304,23 +304,27 @@ SOP_CVD::cookMySop(OP_Context &context)
 		obj->ComputeMaterialInformation();
 		obj->RegisterImpact({ -1, 0, 0 }, 10.0, {1, 0, 0});
 
-		// print singleton points
-		//for (vec3 vec : obj->GetPointsSingleton()) {
-		//	//std::cout << (vec)[0] << "  " << (vec)[1] << "  " << (vec)[2] << std::endl;
-		//	GA_Offset ptoff = gdp->appendPoint();
-		//	gdp->setPos3(ptoff, UT_Vector3(vec[0], vec[1], vec[2]));
-		//}
 		obj->GenerateFragments(cellSize);
 		obj->MoveFragments(0.5);
 		obj->Draw(gdp);
 
-		vec3 min = obj->GetMin();
+		/*vec3 min = obj->GetMin();
 		GA_Offset ptoff = gdp->appendPoint();
 		gdp->setPos3(ptoff, UT_Vector3(min[0], min[1], min[2]));
 
 		vec3 max = obj->GetMax();
 		ptoff = gdp->appendPoint();
-		gdp->setPos3(ptoff, UT_Vector3(max[0], max[1], max[2]));
+		gdp->setPos3(ptoff, UT_Vector3(max[0], max[1], max[2]));*/
+
+		vector<vec3> fractureSites = obj->GenerateFractureSites();
+
+		// try to draw generated points
+		for (float i = 0; i < fractureSites.size(); i++) {
+			GA_Offset ptoff = gdp->appendPoint();
+			vec3 point = fractureSites[i];
+			gdp->setPos3(ptoff, UT_Vector3(point[0], point[1], point[2]));
+		}
+
 
 		delete obj;
 

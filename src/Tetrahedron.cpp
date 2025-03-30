@@ -193,7 +193,7 @@ void Tetrahedron::ComputeStrainTensor() {
 /// This is multiplied onto the already created Material Stiffness Matrix to create a 6x1 Stress Tensor in Voigt notation
 /// We then convert this to a 3x3 matrix and store it.
 /// </summary>
-void Tetrahedron::ComputeStressTensor() {
+void Tetrahedron::ComputeStrainEnergy() {
 	// create strain vector
 	Eigen::Matrix<float, 6, 1> strainVec;
 	strainVec << m_StrainTensor(0, 0),		// ε_xx
@@ -204,10 +204,10 @@ void Tetrahedron::ComputeStressTensor() {
 		2 * m_StrainTensor(0, 1);	// γ_xy (2 * ε_xy)
 
 	// multiply onto Element Stiffness Matrix to get stress vector
+	// INSTEAD OF K_e WE MAY NEED TO USE MATERIAL MATRIX FROM PARENT
 	Eigen::Matrix<float, 6, 1> stressVec = K_e * strainVec;
 
-	m_StressTensor = Eigen::Matrix3f();
-	m_StressTensor << stressVec(0), stressVec(5) / 2.0, stressVec(4) / 2.0,
-		stressVec(5) / 2.0, stressVec(1), stressVec(3) / 2.0,
-		stressVec(4) / 2.0, stressVec(3) / 2.0, stressVec(2);
+	// energy: W = V * (0.5 * dot(strain_voigt, stress_voigt))
+	float strainEnergy = 0.5 * strainVec.dot(stressVec);
+	m_W = V * strainEnergy;
 }

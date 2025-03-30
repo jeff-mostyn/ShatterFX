@@ -24,6 +24,7 @@ struct Tetrahedron
 	Eigen::MatrixXf K_e;			// Element Stiffness Matrix
 	Eigen::Matrix3f m_StrainTensor;	// Tetrahedron strain tensor
 	Eigen::Matrix3f m_StressTensor;	// Tetrahedron stress tensor
+	float m_W = 0;
 	float V = 0;					// Volume
 
 	Tetrahedron(std::vector<vec3> a_points, TetrahedralObject* a_obj)
@@ -41,5 +42,5 @@ struct Tetrahedron
 	// computation functions
 	void ComputeCoefficients();
 	void ComputeStrainTensor();
-	void ComputeStressTensor();
+	void ComputeStrainEnergy();
 };

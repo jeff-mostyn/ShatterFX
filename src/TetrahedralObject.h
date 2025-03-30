@@ -54,12 +54,14 @@ public:
 	const int GetVertexIndex(vec3 a_vertex);
 	vec3 GetMin();
 	vec3 GetMax();
+	float GetTotalEnergy();
 	void RegisterImpact(vec3 a_dir, float a_mag, vec3 a_location);
 	
 	// Generation/Math functions
 	void GenerateFragments(float cellSize);
 	void MoveFragments(float distanceFromCenter);
 	void ComputeMaterialInformation();
+	std::vector<vec3> GenerateFractureSites();
 
 private:
 	std::vector<vec3> m_points;

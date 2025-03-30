@@ -122,6 +122,15 @@ vec3 TetrahedralObject::GetMax()
 	return m_max;
 }
 
+float TetrahedralObject::GetTotalEnergy() {
+	float sum = 0;
+	for (auto& tet : m_tets) {
+		sum += tet->m_W;
+	}
+
+	return sum;
+}
+
 /// <summary>
 /// Entry point to the calculation. This will start function flow for running fracture sims.
 /// </summary>
@@ -136,7 +145,7 @@ void TetrahedralObject::RegisterImpact(vec3 a_dir, float a_mag, vec3 a_location)
 	float minDist = FLT_MAX;
 
 	for (int i = 0; i < m_points.size(); ++i) {
-		float dist = (m_points[i] - a_location).Length();
+		float dist = (m_points[i] - a_location).SqrLength();
 
 		if (dist < minDist) {
 			minDist = dist;
@@ -156,9 +165,9 @@ void TetrahedralObject::RegisterImpact(vec3 a_dir, float a_mag, vec3 a_location)
 	// Compute vector of vertex displacements
 	m_pointDisplacementVector = SolveFEM(f_global);
 
-	for (Tetrahedron* tet : m_tets)
-	{
+	for (Tetrahedron* tet : m_tets) {
 		tet->ComputeStrainTensor();
+		tet->ComputeStrainEnergy();
 	}
 }
 
@@ -231,6 +240,79 @@ void TetrahedralObject::MoveFragments(float distanceFromCenter)
 void TetrahedralObject::ComputeMaterialInformation() {
 	ComputeMaterialMatrix();
 	ComputeGlobalStiffnessMatrix();
+}
+
+std::vector<vec3> TetrahedralObject::GenerateFractureSites() {
+	const int maxSites = 100; // clamp to avoid infinite loop
+	std::vector<vec3> sites;
+	float totalEnergy = GetTotalEnergy();
+
+	float fractureThresholdTMP = totalEnergy * 0.2;
+
+	// Try increasing number of sites until ED < g
+	for (int numSites = 2; numSites <= maxSites; ++numSites)
+	{
+		// Step 1: Sample initial sites using weighted energy distribution
+		std::vector<vec3> candidates;
+		
+		// Generate initial candidates
+		for (int i = 0; i < numSites; ++i)
+		{
+			float r = static_cast<float>(rand()) / RAND_MAX;
+			float accum = 0.0f;
+
+			for (int j = 0; j < m_tets.size(); ++j)
+			{
+				accum += m_tets[j]->m_W / totalEnergy;
+				if (accum >= r)
+				{
+					candidates.push_back(m_tets[j]->GetCenterOfMass());
+					break;
+				}
+			}
+		}
+
+		// Step 2: Run Lloyd’s algorithm to compute CVD in 3D
+		//computeCVD(candidates, mesh, 5); // 5 iterations of Lloyd
+
+		// Step 3: Assign each tet to nearest site, compute E_D(P)
+		std::vector<float> ed_i(candidates.size(), 0.0f);
+
+		for (int t = 0; t < m_tets.size(); ++t)
+		{
+			vec3 com = m_tets[t]->GetCenterOfMass();
+			float minDist2 = FLT_MAX;
+			int closest = 0;
+
+			for (int i = 0; i < candidates.size(); ++i)
+			{
+				float d2 = (com - candidates[i]).SqrLength();
+				if (d2 < minDist2)
+				{
+					minDist2 = d2;
+					closest = i;
+				}
+			}
+
+			// E_{D,i} += dist²(x, p_i) * W(x)
+			ed_i[closest] += minDist2 * m_tets[t]->m_W;
+		}
+
+		// Step 4: Compute total distance-weighted energy
+		float totalED = 0.0f;
+		for (float ed : ed_i)
+			totalED += ed;
+
+		// Step 5: Check if we’re under threshold
+		//if (totalED < fractureThreshold)
+		if (totalED < fractureThresholdTMP) {
+			// We found the minimal number of sites for ED < g
+			sites = candidates;
+			break;
+		}
+	}
+
+	return sites;
 }
 
 void TetrahedralObject::ComputeMaterialMatrix() {
