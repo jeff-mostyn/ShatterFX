@@ -53,6 +53,9 @@ static PRM_Name boundsName("bounds", "Voronoi Region Bounds");
 static PRM_Name cellSizeName("cellSize", "Voronoi Cell Size");
 static PRM_Name stiffnessName("stiffness", "Material Stiffness (Young's Modulus)");
 static PRM_Name strainRatioName("strainRatio", "Material Strain Ratio (Poisson)");
+static PRM_Name forceMagName("forceMag", "Impact Force Magnitude");
+static PRM_Name forceDirName("forceDir", "Impact Force Direction");
+static PRM_Name forceLocName("forceLoc", "Impact Force Location");
 
 
 // SET PARAMETER DEFAULTS
@@ -65,6 +68,17 @@ static PRM_Default boundsDefault[]{
 static PRM_Default cellSizeDefault(1.0);
 static PRM_Default stiffnessDefault(70.0);
 static PRM_Default strainRatioDefault(0.24);
+static PRM_Default forceMagDefault(100.0);
+static PRM_Default forceDirDefault[]{
+	PRM_Default(-1.0),
+	PRM_Default(0.0),
+	PRM_Default(0.0)
+};
+static PRM_Default forceLocDefault[]{
+	PRM_Default(0.5),
+	PRM_Default(0.0),
+	PRM_Default(0.0)
+};
 
 // USE PARAM NAMES AND PARAMS TO INITIALIZE
 
@@ -77,6 +91,17 @@ PRM_Template SOP_CVD::myTemplateList[] = {
 	PRM_Template(PRM_FLT, 1, &cellSizeName, &cellSizeDefault),
 	PRM_Template(PRM_FLT, 1, &stiffnessName, &stiffnessDefault),
 	PRM_Template(PRM_FLT, 1, &strainRatioName, &strainRatioDefault),
+	PRM_Template(PRM_FLT, 1, &forceMagName, &forceMagDefault),
+	PRM_Template(
+		PRM_FLT,		// Declare a 3-float parameter
+		3,              // Number of components
+		&forceDirName,    // Parameter name
+		forceDirDefault),
+	PRM_Template(
+		PRM_FLT,		// Declare a 3-float parameter
+		3,              // Number of components
+		&forceLocName,    // Parameter name
+		forceLocDefault),
 
     PRM_Template()
 };
@@ -188,6 +213,16 @@ SOP_CVD::cookMySop(OP_Context &context)
 
 	float strainRatio;
 	strainRatio = STRAIN_RATIO(now);
+
+	float forceMag;
+	forceMag = FORCE_MAG(now);
+
+	vec3 forceDir;
+	forceDir = FORCE_DIR(now);
+
+	vec3 forceLoc;
+	forceLoc = FORCE_LOC(now);
+
 
 	//std::cout << "---------------------------------------------" << std::endl;
 
@@ -302,11 +337,11 @@ SOP_CVD::cookMySop(OP_Context &context)
 
 		// Compute all information to generate voronoi points and whatnot
 		obj->ComputeMaterialInformation();
-		obj->RegisterImpact({ -1, 0, 0 }, 10.0, {1, 0, 0});
+		obj->RegisterImpact(forceDir, forceMag, forceLoc);
 
-		obj->GenerateFragments(cellSize);
+		/*obj->GenerateFragments(cellSize);
 		obj->MoveFragments(0.5);
-		obj->Draw(gdp);
+		obj->Draw(gdp);*/
 
 		/*vec3 min = obj->GetMin();
 		GA_Offset ptoff = gdp->appendPoint();
@@ -325,6 +360,9 @@ SOP_CVD::cookMySop(OP_Context &context)
 			gdp->setPos3(ptoff, UT_Vector3(point[0], point[1], point[2]));
 		}
 
+		obj->GenerateFragments(fractureSites);
+		obj->MoveFragments(0.5);
+		obj->Draw(gdp);
 
 		delete obj;
 

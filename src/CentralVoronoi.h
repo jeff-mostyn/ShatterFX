@@ -62,21 +62,6 @@ namespace HDK_Sample {
 	    // constantly update the cook function, these functions help you get the current value that the node has
 	    // Example : To declare a function to fetch angle you need to do it this way 
 	    // fpreal  ANGLE(fpreal t)     { return evalFloat("angle", 0, t); }
-        /*fpreal ANGLE(fpreal t) {
-            return evalFloat("angle", 0, t);
-        }
-	
-        fpreal STEPSIZE(fpreal t) {
-            return evalFloat("stepSize", 0, t);
-        }
-
-        fpreal ITERATIONS(fpreal t) {
-            return evalFloat("iterations", 0, t);
-        }
-
-        void GRAMMAR(UT_String& _str, fpreal t) {
-            return evalString(_str, "grammar", 0, t);
-        }*/
         fpreal CELL_SIZE(fpreal t) {
             return evalFloat("cellSize", 0, t);
         }
@@ -94,6 +79,24 @@ namespace HDK_Sample {
 
         fpreal STRAIN_RATIO(fpreal t) {
             return evalFloat("strainRatio", 0, t);
+        }
+
+        fpreal FORCE_MAG(fpreal t) {
+            return evalFloat("forceMag", 0, t);
+        }
+
+        vec3 FORCE_DIR(fpreal t) {
+            float x = evalFloat("forceDir", 0, t);
+            float y = evalFloat("forceDir", 1, t);
+            float z = evalFloat("forceDir", 2, t);
+            return vec3(x, y, z);
+        }
+
+        vec3 FORCE_LOC(fpreal t) {
+            float x = evalFloat("forceLoc", 0, t);
+            float y = evalFloat("forceLoc", 1, t);
+            float z = evalFloat("forceLoc", 2, t);
+            return vec3(x, y, z);
         }
 
         void PopulateVoronoiPoints(vec3 a_bounds, float a_cellSize);

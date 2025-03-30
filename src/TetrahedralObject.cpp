@@ -1,4 +1,6 @@
-﻿#include "TetrahedralObject.h"
+﻿#include <iostream>
+
+#include "TetrahedralObject.h"
 
 // ------------------------------------------------------------
 // 
@@ -197,6 +199,35 @@ void TetrahedralObject::GenerateFragments(float cellSize)
 		}
 
 		cellToFragment[key]->m_tets.push_back(tet);
+	}
+
+}
+
+void TetrahedralObject::GenerateFragments(std::vector<vec3> sites) {
+	m_frags.clear();
+
+	// Map to group tetrahedra by their voxel grid cell
+	std::unordered_map<int, TetFragment*> cellToFragment;
+
+	for (Tetrahedron* tet : m_tets)
+	{
+		int closest = -1;
+		float closestDist = FLT_MAX;
+		for (int i = 0; i < sites.size(); i++) {
+			float dist = (tet->GetCenterOfMass() - sites[i]).SqrLength();
+			if (dist < closestDist) { 
+				closest = i; 
+				closestDist = dist;
+			}
+		}
+
+		if (cellToFragment.find(closest) == cellToFragment.end())
+		{
+			cellToFragment[closest] = new TetFragment();
+			m_frags.push_back(cellToFragment[closest]);
+		}
+
+		cellToFragment[closest]->m_tets.push_back(tet);
 	}
 
 }

@@ -59,6 +59,7 @@ public:
 	
 	// Generation/Math functions
 	void GenerateFragments(float cellSize);
+	void GenerateFragments(std::vector<vec3> sites);
 	void MoveFragments(float distanceFromCenter);
 	void ComputeMaterialInformation();
 	std::vector<vec3> GenerateFractureSites();
