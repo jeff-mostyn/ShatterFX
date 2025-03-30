@@ -155,6 +155,11 @@ void TetrahedralObject::RegisterImpact(vec3 a_dir, float a_mag, vec3 a_location)
 
 	// Compute vector of vertex displacements
 	m_pointDisplacementVector = SolveFEM(f_global);
+
+	for (Tetrahedron* tet : m_tets)
+	{
+		tet->ComputeStrainTensor();
+	}
 }
 
 void TetrahedralObject::GenerateFragments(float cellSize)
