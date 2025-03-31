@@ -287,16 +287,13 @@ std::vector<vec3> TetrahedralObject::GenerateFractureSites() {
 		std::vector<vec3> candidates;
 		
 		// Generate initial candidates
-		for (int i = 0; i < numSites; ++i)
-		{
+		for (int i = 0; i < numSites; ++i) {
 			float r = static_cast<float>(rand()) / RAND_MAX;
 			float accum = 0.0f;
 
-			for (int j = 0; j < m_tets.size(); ++j)
-			{
+			for (int j = 0; j < m_tets.size(); ++j) {
 				accum += m_tets[j]->m_W / totalEnergy;
-				if (accum >= r)
-				{
+				if (accum >= r) {
 					candidates.push_back(m_tets[j]->GetCenterOfMass());
 					break;
 				}
@@ -304,7 +301,7 @@ std::vector<vec3> TetrahedralObject::GenerateFractureSites() {
 		}
 
 		// Step 2: Run Lloyd’s algorithm to compute CVD in 3D
-		//computeCVD(candidates, mesh, 5); // 5 iterations of Lloyd
+		ComputeCVD(candidates, 5); // 5 iterations of Lloyd
 
 		// Step 3: Assign each tet to nearest site, compute E_D(P)
 		std::vector<float> ed_i(candidates.size(), 0.0f);
@@ -411,6 +408,46 @@ void TetrahedralObject::ComputeGlobalStiffnessMatrix() {
 	K_global.setFromTriplets(triplets.begin(), triplets.end());
 
 	m_globalStiffness = K_global;
+}
+
+void TetrahedralObject::ComputeCVD(std::vector<vec3>& sites, int iterations) {
+	for (int iter = 0; iter < iterations; ++iter) {
+		
+		// Assign tets to nearest site
+		std::vector<std::vector<Tetrahedron*>> clusters(sites.size());
+
+		for (Tetrahedron* tet : m_tets) {
+			vec3 center = tet->GetCenterOfMass();
+
+			int closestIndex = 0;
+			float minDist = FLT_MAX;
+
+			for (int i = 0; i < sites.size(); ++i) {
+				float dist = (center - sites[i]).SqrLength();
+
+				if (dist < minDist) {
+					minDist = dist;
+					closestIndex = i;
+				}
+			}
+
+			clusters[closestIndex].push_back(tet);
+		}
+
+		// Update each site to the average center of mass of its assigned tets
+		for (int i = 0; i < sites.size(); ++i) {
+			if (clusters[i].empty()) {
+				continue;
+			}
+
+			vec3 avg = vec3Zero;
+
+			for (Tetrahedron* tet : clusters[i]) {
+				avg += tet->GetCenterOfMass();
+			}
+			sites[i] = avg / static_cast<float>(clusters[i].size());
+		}
+	}
 }
 
 Eigen::VectorXf TetrahedralObject::SolveFEM(const Eigen::VectorXf& a_Force) {

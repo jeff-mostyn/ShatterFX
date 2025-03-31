@@ -77,5 +77,6 @@ private:
 
 	void ComputeMaterialMatrix();
 	void ComputeGlobalStiffnessMatrix();
+	void ComputeCVD(std::vector<vec3>& sites, int iterations = 5);
 	Eigen::VectorXf SolveFEM(const Eigen::VectorXf& a_force);
 };
