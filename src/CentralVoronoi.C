@@ -80,6 +80,11 @@ static PRM_Default forceLocDefault[]{
 	PRM_Default(0.0)
 };
 
+// DECLARE PARAMETER RANGES
+static PRM_Range youngsModulusRange(PRM_RANGE_RESTRICTED, 0.01, PRM_RANGE_RESTRICTED, 1200.0);
+static PRM_Range poissonRange(PRM_RANGE_RESTRICTED, 0.0, PRM_RANGE_RESTRICTED, 0.4999);
+static PRM_Range forceMagRange(PRM_RANGE_RESTRICTED, 1.0, PRM_RANGE_RESTRICTED, 250000.0);
+
 // USE PARAM NAMES AND PARAMS TO INITIALIZE
 
 PRM_Template SOP_CVD::myTemplateList[] = {
@@ -89,9 +94,9 @@ PRM_Template SOP_CVD::myTemplateList[] = {
 		&boundsName,    // Parameter name
 		boundsDefault),
 	PRM_Template(PRM_FLT, 1, &cellSizeName, &cellSizeDefault),
-	PRM_Template(PRM_FLT, 1, &stiffnessName, &stiffnessDefault),
-	PRM_Template(PRM_FLT, 1, &strainRatioName, &strainRatioDefault),
-	PRM_Template(PRM_FLT, 1, &forceMagName, &forceMagDefault),
+	PRM_Template(PRM_FLT, 1, &stiffnessName, &stiffnessDefault, nullptr, &youngsModulusRange),
+	PRM_Template(PRM_FLT, 1, &strainRatioName, &strainRatioDefault, nullptr, &poissonRange),
+	PRM_Template(PRM_FLT, 1, &forceMagName, &forceMagDefault, nullptr, &forceMagRange),
 	PRM_Template(
 		PRM_FLT,		// Declare a 3-float parameter
 		3,              // Number of components
@@ -202,6 +207,7 @@ SOP_CVD::cookMySop(OP_Context &context)
 	// PUT YOUR CODE HERE
 	// DECLARE FIELDS FOR PARAMETERS      
     //    NOTE : [ALL-CAPS] is a function that you need to use and it is declared in the header file to update your values instantly while cooking 
+	// NOW THAT WE HAVE HANDLES ON ALL VARIABLES, WE ALSO WILL DO CHECKS AND MAKE SURE THEY STAY IN SAFE RANGES
 	vec3 bounds;
 	bounds = BOUNDS(now);
 
@@ -219,6 +225,9 @@ SOP_CVD::cookMySop(OP_Context &context)
 
 	vec3 forceDir;
 	forceDir = FORCE_DIR(now);
+	if (forceDir.Length() == 0) {
+		forceDir = { 1.0, 1.0, 1.0 };
+	}
 
 	vec3 forceLoc;
 	forceLoc = FORCE_LOC(now);

@@ -136,10 +136,14 @@ float TetrahedralObject::GetTotalEnergy() {
 /// <summary>
 /// Entry point to the calculation. This will start function flow for running fracture sims.
 /// </summary>
-/// <param name="a_dir">NORMALIZED force direction</param>
+/// <param name="a_dir">Force direction</param>
 /// <param name="a_mag">Impact force magnitude</param>
 /// <param name="a_location">Desired impact location in 3D space. Closest vertex will be determined</param>
 void TetrahedralObject::RegisterImpact(vec3 a_dir, float a_mag, vec3 a_location) {
+	// input sanitization
+	a_dir = a_dir.Normalize();
+
+	// computation
 	Eigen::VectorXf f_global = Eigen::VectorXf::Zero(3 * m_points.size());
 
 	// get closest point to impact
