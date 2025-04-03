@@ -50,7 +50,7 @@ newSopOperator(OP_OperatorTable *table)
 // DECLARE PARAMETERS (arg1: internal, arg2: descriptive)
 
 static PRM_Name boundsName("bounds", "Voronoi Region Bounds");
-static PRM_Name cellSizeName("cellSize", "Voronoi Cell Size");
+static PRM_Name cellSizeName("cellSize", "Move Fragments Spacing");
 static PRM_Name stiffnessName("stiffness", "Material Stiffness (Young's Modulus)");
 static PRM_Name strainRatioName("strainRatio", "Material Strain Ratio (Poisson)");
 static PRM_Name forceMagName("forceMag", "Impact Force Magnitude");
@@ -361,7 +361,7 @@ SOP_CVD::cookMySop(OP_Context &context)
 		}
 
 		obj->GenerateFragments(fractureSites);
-		obj->MoveFragments(0.5);
+		obj->MoveFragments(cellSize);
 		obj->Draw(gdp);
 
 		delete obj;
