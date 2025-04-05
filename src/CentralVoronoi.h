@@ -80,6 +80,10 @@ namespace HDK_Sample {
         fpreal STRAIN_RATIO(fpreal t) {
             return evalFloat("strainRatio", 0, t);
         }
+        
+        fpreal FRACTURE_TOUGHNESS(fpreal t) {
+            return evalFloat("fractureToughness", 0, t);
+        }
 
         fpreal FORCE_MAG(fpreal t) {
             return evalFloat("forceMag", 0, t);

@@ -51,9 +51,10 @@ newSopOperator(OP_OperatorTable *table)
 
 static PRM_Name boundsName("bounds", "Voronoi Region Bounds");
 static PRM_Name cellSizeName("cellSize", "Move Fragments Spacing");
-static PRM_Name stiffnessName("stiffness", "Material Stiffness (Young's Modulus)");
-static PRM_Name strainRatioName("strainRatio", "Material Strain Ratio (Poisson)");
-static PRM_Name forceMagName("forceMag", "Impact Force Magnitude");
+static PRM_Name stiffnessName("stiffness", "Young's Modulus (GPa)");
+static PRM_Name strainRatioName("strainRatio", "Poisson Ratio");
+static PRM_Name fractureToughnessName("fractureToughness", "Fracture Toughness (J/m^2)");
+static PRM_Name forceMagName("forceMag", "Impact Force Magnitude (N)");
 static PRM_Name forceDirName("forceDir", "Impact Force Direction");
 static PRM_Name forceLocName("forceLoc", "Impact Force Location");
 
@@ -66,8 +67,9 @@ static PRM_Default boundsDefault[]{
 	PRM_Default(1.0)
 };
 static PRM_Default cellSizeDefault(1.0);
-static PRM_Default stiffnessDefault(70.0);
-static PRM_Default strainRatioDefault(0.24);
+static PRM_Default stiffnessDefault(40.);
+static PRM_Default strainRatioDefault(0.18);
+static PRM_Default fractureToughnessDefault(15.0);
 static PRM_Default forceMagDefault(100.0);
 static PRM_Default forceDirDefault[]{
 	PRM_Default(-1.0),
@@ -83,6 +85,7 @@ static PRM_Default forceLocDefault[]{
 // DECLARE PARAMETER RANGES
 static PRM_Range youngsModulusRange(PRM_RANGE_RESTRICTED, 0.01, PRM_RANGE_RESTRICTED, 1200.0);
 static PRM_Range poissonRange(PRM_RANGE_RESTRICTED, 0.0, PRM_RANGE_RESTRICTED, 0.4999);
+static PRM_Range fractureToughnessRange(PRM_RANGE_RESTRICTED, 10.0, PRM_RANGE_RESTRICTED, 500);
 static PRM_Range forceMagRange(PRM_RANGE_RESTRICTED, 1.0, PRM_RANGE_RESTRICTED, 250000.0);
 
 // USE PARAM NAMES AND PARAMS TO INITIALIZE
@@ -96,6 +99,7 @@ PRM_Template SOP_CVD::myTemplateList[] = {
 	PRM_Template(PRM_FLT, 1, &cellSizeName, &cellSizeDefault),
 	PRM_Template(PRM_FLT, 1, &stiffnessName, &stiffnessDefault, nullptr, &youngsModulusRange),
 	PRM_Template(PRM_FLT, 1, &strainRatioName, &strainRatioDefault, nullptr, &poissonRange),
+	PRM_Template(PRM_FLT, 1, &fractureToughnessName, &fractureToughnessDefault, nullptr, &fractureToughnessRange),
 	PRM_Template(PRM_FLT, 1, &forceMagName, &forceMagDefault, nullptr, &forceMagRange),
 	PRM_Template(
 		PRM_FLT,		// Declare a 3-float parameter
@@ -215,10 +219,13 @@ SOP_CVD::cookMySop(OP_Context &context)
 	cellSize = CELL_SIZE(now);
 
 	float stiffness;
-	stiffness = STIFFNESS(now);
+	stiffness = STIFFNESS(now) * pow(10, 9); // we are inputting Young's Modulus in GPa, need to convert to Pa
 
 	float strainRatio;
 	strainRatio = STRAIN_RATIO(now);
+
+	float fractureToughness;
+	fractureToughness = FRACTURE_TOUGHNESS(now);
 
 	float forceMag;
 	forceMag = FORCE_MAG(now);
@@ -301,6 +308,7 @@ SOP_CVD::cookMySop(OP_Context &context)
 		std::unique_ptr<MaterialData> matData = std::make_unique<MaterialData>();
 		matData->stiffness = stiffness;
 		matData->strainRatio = strainRatio;
+		matData->fractureToughness = fractureToughness;
 
 		TetrahedralObject* obj = new TetrahedralObject(std::move(matData));
 		obj->DumpPoints();

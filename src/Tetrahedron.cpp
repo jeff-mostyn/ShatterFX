@@ -53,8 +53,8 @@ float Tetrahedron::TetrahedralVolume()
 	J = A;
 
 	// volume is the determinant of the above matrix (whatever the name for that matrix is) divided by 6
-	V = J.determinant() / 6.0;
-	return V;
+	m_V = abs(J.determinant() / 6.0);
+	return m_V;
 }
 
 void Tetrahedron::Draw(GU_Detail* gdp)
@@ -157,7 +157,7 @@ void Tetrahedron::ComputeCoefficients() {
 	// V - Volume
 	// B - Strain-displacement matrix
 	// D - Material stiffness matrix
-	K_e = V * B.transpose() * (*m_myObj->GetMaterialMatrix()) * B;
+	K_e = m_V * B.transpose() * (*m_myObj->GetMaterialMatrix()) * B;
 }
 
 void Tetrahedron::ComputeStrainTensor() {
@@ -179,6 +179,7 @@ void Tetrahedron::ComputeStrainTensor() {
 	Eigen::Matrix3f F = Eigen::Matrix3f::Identity(); // I think F is the Deformation gradient
 	for (int i = 0; i < 4; ++i) {
 		Eigen::Vector3f delta = GetVertexDisplacements(i);
+
 		// this is adding the product of a 3x1 * 1x3, which gives a 3x3 matrix.
 		F += delta * localGrad.col(i).transpose();
 	}
@@ -209,5 +210,5 @@ void Tetrahedron::ComputeStrainEnergy() {
 
 	// energy: W = V * (0.5 * dot(strain_voigt, stress_voigt))
 	float strainEnergy = 0.5 * strainVec.dot(stressVec);
-	m_W = V * strainEnergy;
+	m_W = m_V * strainEnergy;
 }

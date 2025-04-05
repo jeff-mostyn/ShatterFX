@@ -23,6 +23,7 @@ class Tetrahedron;
 struct MaterialData {
 	float stiffness;	// Young's Modulus
 	float strainRatio;	// Poisson Ratio
+	float fractureToughness;	// Fracture Toughness of material
 };
 
 struct TetFragment
