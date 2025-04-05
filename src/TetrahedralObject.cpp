@@ -287,13 +287,13 @@ std::vector<vec3> TetrahedralObject::GenerateFractureSites() {
 	float fractureThresholdTMP = totalEnergy * 0.2;
 
 	// Try increasing number of sites until ED < g
-	for (int numSites = 2; numSites <= maxSites; ++numSites)
-	{
+	//for (int numSites = 2; numSites <= maxSites; ++numSites)
+	//{
 		// Step 1: Sample initial sites using weighted energy distribution
 		std::vector<vec3> candidates;
 		
 		// Generate initial candidates
-		for (int i = 0; i < numSites; ++i) {
+		/*for (int i = 0; i < numSites; ++i) {
 			float r = static_cast<float>(rand()) / RAND_MAX;
 			float accum = 0.0f;
 
@@ -304,10 +304,22 @@ std::vector<vec3> TetrahedralObject::GenerateFractureSites() {
 					break;
 				}
 			}
+		}*/
+		for (auto& tet : m_tets) {
+			vec3 side1, side2;
+			side1 = tet->m_points[1] - tet->m_points[0];
+			side2 = tet->m_points[2] - tet->m_points[0];
+
+			float sideArea = 0.5 * side1.Cross(side2).Length();
+
+			if (tet->m_W > sideArea * m_matData->fractureToughness) {
+				//std::cout << "fracture" << std::endl;
+				candidates.push_back(tet->GetCenterOfMass());
+			}
 		}
 
 		// Step 2: Run Lloyd’s algorithm to compute CVD in 3D
-		ComputeCVD(candidates, 5); // 5 iterations of Lloyd
+		//ComputeCVD(candidates, 3); // 5 iterations of Lloyd
 
 		// Step 3: Assign each tet to nearest site, compute E_D(P)
 		std::vector<float> ed_i(candidates.size(), 0.0f);
@@ -339,13 +351,13 @@ std::vector<vec3> TetrahedralObject::GenerateFractureSites() {
 
 		// Step 5: Check if we’re under threshold
 		//if (totalED < fractureThreshold)
-		if (totalED < fractureThresholdTMP) {
-			// We found the minimal number of sites for ED < g
-			sites = candidates;
-			break;
-		}
-	}
-
+		//if (totalED < fractureThresholdTMP) {
+		//	// We found the minimal number of sites for ED < g
+		//	sites = candidates;
+		//	break;
+		//}
+	//}
+	sites = candidates;
 	return sites;
 }
 
@@ -458,12 +470,12 @@ void TetrahedralObject::ComputeCVD(std::vector<vec3>& sites, int iterations) {
 
 Eigen::VectorXf TetrahedralObject::SolveFEM(const Eigen::VectorXf& a_Force) {
 	//std::cout << "Stiffness matrix (first 10 rows and columns): " << std::endl;
-	for (int i = 0; i < 10; ++i) {
+	/*for (int i = 0; i < 10; ++i) {
 		for (int j = 0; j < 10; ++j) {
 			std::cout << m_globalStiffness.coeff(i, j) << " ";
 		}
 		std::cout << std::endl;
-	}
+	}*/
 	//std::cout << "Force vector: " << a_Force.transpose() << std::endl;
 
 	Eigen::SparseLU<Eigen::SparseMatrix<float>> solver;

@@ -370,16 +370,18 @@ SOP_CVD::cookMySop(OP_Context &context)
 
 		vector<vec3> fractureSites = obj->GenerateFractureSites();
 
-		// try to draw generated points
-		for (float i = 0; i < fractureSites.size(); i++) {
-			GA_Offset ptoff = gdp->appendPoint();
-			vec3 point = fractureSites[i];
-			gdp->setPos3(ptoff, UT_Vector3(point[0], point[1], point[2]));
-		}
+		if (fractureSites.size() > 0) {
+			// try to draw generated points
+			for (float i = 0; i < fractureSites.size(); i++) {
+				GA_Offset ptoff = gdp->appendPoint();
+				vec3 point = fractureSites[i];
+				gdp->setPos3(ptoff, UT_Vector3(point[0], point[1], point[2]));
+			}
 
-		obj->GenerateFragments(fractureSites);
-		obj->MoveFragments(cellSize);
-		obj->Draw(gdp);
+			obj->GenerateFragments(fractureSites);
+			obj->MoveFragments(cellSize);
+			obj->Draw(gdp);
+		}
 
 		delete obj;
 
