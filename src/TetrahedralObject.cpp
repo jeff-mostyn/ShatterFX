@@ -279,85 +279,124 @@ void TetrahedralObject::ComputeMaterialInformation() {
 	ComputeGlobalStiffnessMatrix();
 }
 
-std::vector<vec3> TetrahedralObject::GenerateFractureSites() {
+std::vector<vec3> TetrahedralObject::GenerateFractureSites(vec3 a_impactPoint) {
 	const int maxSites = 100; // clamp to avoid infinite loop
 	std::vector<vec3> sites;
 	float totalEnergy = GetTotalEnergy();
 
-	float fractureThresholdTMP = totalEnergy * 0.2;
-
-	// Try increasing number of sites until ED < g
-	//for (int numSites = 2; numSites <= maxSites; ++numSites)
-	//{
-		// Step 1: Sample initial sites using weighted energy distribution
-		std::vector<vec3> candidates;
+	// Step 1: Sample initial sites using weighted energy distribution
+	std::list<Fracture> candidates;
+	std::map<vec3, float> fracSiteEnergyContrib;
 		
-		// Generate initial candidates
-		/*for (int i = 0; i < numSites; ++i) {
-			float r = static_cast<float>(rand()) / RAND_MAX;
-			float accum = 0.0f;
+	// Generate initial candidates
+	for (auto& tet : m_tets) {
+		vec3 side1, side2;
+		side1 = tet->m_points[1] - tet->m_points[0];
+		side2 = tet->m_points[2] - tet->m_points[0];
 
-			for (int j = 0; j < m_tets.size(); ++j) {
-				accum += m_tets[j]->m_W / totalEnergy;
-				if (accum >= r) {
-					candidates.push_back(m_tets[j]->GetCenterOfMass());
-					break;
-				}
-			}
-		}*/
-		for (auto& tet : m_tets) {
-			vec3 side1, side2;
-			side1 = tet->m_points[1] - tet->m_points[0];
-			side2 = tet->m_points[2] - tet->m_points[0];
+		float sideArea = 0.5 * side1.Cross(side2).Length();
 
-			float sideArea = 0.5 * side1.Cross(side2).Length();
+		// if deformation energy in tetrahedron is enough to fracture, log the fracture point
+		// and compute distance weighted energy
+		if (tet->m_W > sideArea * m_matData->fractureToughness) {
+			candidates.push_back(Fracture(tet->GetCenterOfMass(), tet->m_W));
+		}
+	}
 
-			if (tet->m_W > sideArea * m_matData->fractureToughness) {
-				//std::cout << "fracture" << std::endl;
-				candidates.push_back(tet->GetCenterOfMass());
+
+	// Step 2: Calculate energy contributed by each tet to each fracture
+	// and use to limit number of fractures to those such that the energy spent does not
+	// exceed the total energy of the system, but that the fractures that happen are the highest
+	// energy ones
+	float boundingRadius = max(m_max.Length(), m_min.Length());
+	float sigma_global = boundingRadius * 0.3; // affects how far energy spreads from impact
+
+	float radiiTotal = 0.f;
+	for (const auto& tet : m_tets) {
+		radiiTotal += (tet->m_points[0] - tet->GetCenterOfMass()).Length();
+	}
+	float avgRadius = radiiTotal / m_tets.size();
+	float sigma_local = 2.f * avgRadius; // affects how many sites a tet can influence
+
+	// initialize map
+	for (const auto &candidate : candidates) {
+		fracSiteEnergyContrib[candidate.location] = 0;
+	}
+
+	// calculate combined energy applied to each fracture site from nearby tets
+	for (const auto& tet : m_tets) {
+		float distFromImpact = (tet->GetCenterOfMass() - a_impactPoint).Length();
+
+		// Global falloff based on impact distance (e.g. Gaussian)
+		float globalWeight = std::exp(-(distFromImpact * distFromImpact) / (2.0f * sigma_global * sigma_global));
+	
+		float weightedEnergy = tet->m_W * globalWeight;
+
+		// for each fracture, assign energy contributed by this tet
+		for (std::list<Fracture>::iterator it = candidates.begin(); it != candidates.end(); ++it) {
+			float d_local = (tet->GetCenterOfMass() - (*it).location).Length();
+
+			// Local kernel (e.g. Gaussian again, or could be inverse-square)
+			float localWeight = std::exp(-(d_local * d_local) / (2.0f * sigma_local * sigma_local));
+
+			fracSiteEnergyContrib[(*it).location] += weightedEnergy * localWeight;
+		}
+	}
+
+	// sort candidates by energy
+	float currentHighestEnergy = FLT_MAX;
+	float nextHighestEnergy = 0;
+	vec3 nextHighestCandidate = vec3Zero;
+	std::vector<vec3> sortedCandidates = std::vector<vec3>();
+	std::vector<float> sortedEnergies = std::vector<float>();
+	
+	for (int i = 0; i < candidates.size(); i++) {
+		for (auto& candidate : candidates) {
+			float candEnergy = fracSiteEnergyContrib[candidate.location];
+			if (candEnergy < currentHighestEnergy && candEnergy >= nextHighestEnergy) {
+				nextHighestEnergy = candEnergy;
+				nextHighestCandidate = candidate.location;
 			}
 		}
 
-		// Step 2: Run Lloyd’s algorithm to compute CVD in 3D
-		//ComputeCVD(candidates, 3); // 5 iterations of Lloyd
+		currentHighestEnergy = nextHighestEnergy;
+		sortedCandidates.push_back(nextHighestCandidate);
+		sortedEnergies.push_back(nextHighestEnergy);
 
-		// Step 3: Assign each tet to nearest site, compute E_D(P)
-		std::vector<float> ed_i(candidates.size(), 0.0f);
+		nextHighestEnergy = 0;
+	}
 
-		for (int t = 0; t < m_tets.size(); ++t)
-		{
-			vec3 com = m_tets[t]->GetCenterOfMass();
-			float minDist2 = FLT_MAX;
-			int closest = 0;
-
-			for (int i = 0; i < candidates.size(); ++i)
-			{
-				float d2 = (com - candidates[i]).SqrLength();
-				if (d2 < minDist2)
-				{
-					minDist2 = d2;
-					closest = i;
-				}
-			}
-
-			// E_{D,i} += dist²(x, p_i) * W(x)
-			ed_i[closest] += minDist2 * m_tets[t]->m_W;
+	// pare "extra energy" fractures if any exist
+	float contributedEnergy = 0;
+	for (int i = 0; i < sortedCandidates.size(); i++) {
+		// if total contributed energy plus energy of next fracture is less than the total
+		// system energy, add the current fracture to the sites
+		if (contributedEnergy + sortedEnergies[i] <= totalEnergy) {
+			sites.push_back(sortedCandidates[i]);
+			contributedEnergy += sortedEnergies[i];
 		}
+	}
 
-		// Step 4: Compute total distance-weighted energy
-		float totalED = 0.0f;
-		for (float ed : ed_i)
-			totalED += ed;
+	// Step 3: Run Lloyd’s algorithm to compute CVD in 3D
+	//ComputeCVD(candidates, 3); // 5 iterations of Lloyd
 
-		// Step 5: Check if we’re under threshold
-		//if (totalED < fractureThreshold)
-		//if (totalED < fractureThresholdTMP) {
-		//	// We found the minimal number of sites for ED < g
-		//	sites = candidates;
-		//	break;
-		//}
-	//}
-	sites = candidates;
+	// Step 4: Assign each tet to nearest site
+	for (int t = 0; t < m_tets.size(); ++t) {
+		vec3 com = m_tets[t]->GetCenterOfMass();
+		float minDist2 = FLT_MAX;
+		int closest = 0;
+
+		int i = 0;
+		for (auto& sites : sites) {
+			float d2 = (com - sites).SqrLength();
+			if (d2 < minDist2) {
+				minDist2 = d2;
+				closest = i;
+			}
+			i++;
+		}
+	}
+
 	return sites;
 }
 

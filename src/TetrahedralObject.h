@@ -34,6 +34,20 @@ struct TetFragment
 	//vec3 GetMax();
 };
 
+struct Fracture {
+	vec3 location;
+	float energy;
+
+	Fracture(vec3 a_location, float a_energy) {
+		location = a_location;
+		energy = a_energy;
+	}
+
+	bool operator<(const Fracture& other) const {
+		return energy < other.energy;
+	}
+};
+
 class TetrahedralObject
 {
 public:
@@ -63,7 +77,7 @@ public:
 	void GenerateFragments(std::vector<vec3> sites);
 	void MoveFragments(float distanceFromCenter);
 	void ComputeMaterialInformation();
-	std::vector<vec3> GenerateFractureSites();
+	std::vector<vec3> GenerateFractureSites(vec3 a_impactPoint);
 
 private:
 	std::vector<vec3> m_points;

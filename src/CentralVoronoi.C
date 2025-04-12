@@ -368,7 +368,7 @@ SOP_CVD::cookMySop(OP_Context &context)
 		ptoff = gdp->appendPoint();
 		gdp->setPos3(ptoff, UT_Vector3(max[0], max[1], max[2]));*/
 
-		vector<vec3> fractureSites = obj->GenerateFractureSites();
+		vector<vec3> fractureSites = obj->GenerateFractureSites(forceLoc);
 
 		if (fractureSites.size() > 0) {
 			// try to draw generated points
