@@ -20,6 +20,7 @@
 
 #include <limits.h>
 #include "CentralVoronoi.h"
+#include "ImpactPoint.h"
 #include "TetrahedralObject.h"
 using namespace HDK_Sample;
 
@@ -44,6 +45,16 @@ newSopOperator(OP_OperatorTable *table)
 			     SOP_CVD::myVariables,	// Local variables
 			     OP_FLAG_GENERATOR)		// Flag it as generator
 	    );
+	table->addOperator(
+		new OP_Operator("ImpactPoint",			// Internal name
+			"Impact",						// UI name
+			SOP_Impact::myConstructor,	// How to build the SOP
+			SOP_Impact::myTemplateList,	// My parameters
+			1,				// Min # of sources
+			1,				// Max # of sources
+			SOP_Impact::myVariables,	// Local variables
+			OP_FLAG_GENERATOR)		// Flag it as generator
+	);
 }
 
 
