@@ -282,7 +282,10 @@ void TetrahedralObject::ComputeMaterialInformation() {
 std::vector<vec3> TetrahedralObject::GenerateFractureSites(vec3 a_impactPoint) {
 	const int maxSites = 100; // clamp to avoid infinite loop
 	std::vector<vec3> sites;
-	float totalEnergy = GetTotalEnergy();
+	float totalEnergy = GetTotalEnergy() * 0.1f;
+	float fractureEpislon = 0.005;
+
+	std::cout << "Energy to be spent: " << totalEnergy << std::endl;
 
 	// Step 1: Sample initial sites using weighted energy distribution
 	std::list<Fracture> candidates;
@@ -369,16 +372,21 @@ std::vector<vec3> TetrahedralObject::GenerateFractureSites(vec3 a_impactPoint) {
 	// pare "extra energy" fractures if any exist
 	float contributedEnergy = 0;
 	for (int i = 0; i < sortedCandidates.size(); i++) {
+		std::cout << "Energy expenditure [" << i << "]: " << sortedEnergies[i] << std::endl;
 		// if total contributed energy plus energy of next fracture is less than the total
 		// system energy, add the current fracture to the sites
-		if (contributedEnergy + sortedEnergies[i] <= totalEnergy) {
+		if (contributedEnergy + sortedEnergies[i] <= totalEnergy && sortedEnergies[i] > fractureEpislon) {
+			std::cout << "Energy spent!" << std::endl;
 			sites.push_back(sortedCandidates[i]);
 			contributedEnergy += sortedEnergies[i];
+		}
+		else {
+			break;
 		}
 	}
 
 	// Step 3: Run Lloyd’s algorithm to compute CVD in 3D
-	//ComputeCVD(candidates, 3); // 5 iterations of Lloyd
+	//ComputeCVD(sites, 3); // 5 iterations of Lloyd
 
 	// Step 4: Assign each tet to nearest site
 	for (int t = 0; t < m_tets.size(); ++t) {
