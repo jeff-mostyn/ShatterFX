@@ -367,18 +367,6 @@ SOP_CVD::cookMySop(OP_Context &context)
 		obj->ComputeMaterialInformation();
 		obj->RegisterImpact(forceDir, forceMag, forceLoc);
 
-		/*obj->GenerateFragments(cellSize);
-		obj->MoveFragments(0.5);
-		obj->Draw(gdp);*/
-
-		/*vec3 min = obj->GetMin();
-		GA_Offset ptoff = gdp->appendPoint();
-		gdp->setPos3(ptoff, UT_Vector3(min[0], min[1], min[2]));
-
-		vec3 max = obj->GetMax();
-		ptoff = gdp->appendPoint();
-		gdp->setPos3(ptoff, UT_Vector3(max[0], max[1], max[2]));*/
-
 		vector<vec3> fractureSites = obj->GenerateFractureSites(forceLoc);
 
 		if (fractureSites.size() > 0) {

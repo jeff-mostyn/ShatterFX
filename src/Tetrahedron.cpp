@@ -3,6 +3,7 @@
 #include <GU/GU_PrimPoly.h>
 
 #include "Tetrahedron.h"
+#include <GU/GU_PrimTetrahedron.h>
 
 // -----------------------------------------------------
 // 
@@ -59,21 +60,27 @@ float Tetrahedron::TetrahedralVolume()
 
 void Tetrahedron::Draw(GU_Detail* gdp)
 {
-	for (int i = 0; i < 4; i++)
-	{
-		vec3 p1 = m_points[i];
-		vec3 p2 = m_points[(i + 1) % 4];
-		vec3 p3 = m_points[(i + 2) % 4];
+	vec3 p0 = m_points[0];
+	vec3 p1 = m_points[1];
+	vec3 p2 = m_points[2];
+	vec3 p3 = m_points[3];
 
-		GU_PrimPoly* poly = GU_PrimPoly::build(gdp, 3, GU_POLY_CLOSED);
-		GA_Offset ptoff1 = poly->getPointOffset(0);
-		GA_Offset ptoff2 = poly->getPointOffset(1);
-		GA_Offset ptoff3 = poly->getPointOffset(2);
+	GU_PrimTetrahedron* tet = GU_PrimTetrahedron::build(gdp);
 
-		gdp->setPos3(ptoff1, UT_Vector3(p1[0], p1[1], p1[2]));
-		gdp->setPos3(ptoff2, UT_Vector3(p2[0], p2[1], p2[2]));
-		gdp->setPos3(ptoff3, UT_Vector3(p3[0], p3[1], p3[2]));
-	}
+	GA_Offset off0 = gdp->appendPointOffset();
+	GA_Offset off1 = gdp->appendPointOffset();
+	GA_Offset off2 = gdp->appendPointOffset();
+	GA_Offset off3 = gdp->appendPointOffset();
+
+	gdp->setPos3(off0, UT_Vector3(p0[0], p0[1], p0[2]));
+	gdp->setPos3(off1, UT_Vector3(p1[0], p1[1], p1[2]));
+	gdp->setPos3(off2, UT_Vector3(p2[0], p2[1], p2[2]));
+	gdp->setPos3(off3, UT_Vector3(p3[0], p3[1], p3[2]));
+
+	tet->setPointOffset(0, off0);
+	tet->setPointOffset(1, off1);
+	tet->setPointOffset(2, off2);
+	tet->setPointOffset(3, off3);
 }
 
 void Tetrahedron::ComputeCoefficients() {
