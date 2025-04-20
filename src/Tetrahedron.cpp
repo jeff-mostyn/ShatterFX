@@ -58,7 +58,7 @@ float Tetrahedron::TetrahedralVolume()
 	return m_V;
 }
 
-void Tetrahedron::Draw(GU_Detail* gdp)
+void Tetrahedron::Draw(GU_Detail* gdp, int fragmentId, GA_RWHandleS nameHandle)
 {
 	vec3 p0 = m_points[0];
 	vec3 p1 = m_points[1];
@@ -66,6 +66,7 @@ void Tetrahedron::Draw(GU_Detail* gdp)
 	vec3 p3 = m_points[3];
 
 	GU_PrimTetrahedron* tet = GU_PrimTetrahedron::build(gdp);
+	nameHandle.set(tet->getMapOffset(), ("fragment_" + to_string(fragmentId)).c_str());
 
 	GA_Offset off0 = gdp->appendPointOffset();
 	GA_Offset off1 = gdp->appendPointOffset();

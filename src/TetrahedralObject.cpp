@@ -76,22 +76,18 @@ void TetrahedralObject::DumpPoints() {
 
 void TetrahedralObject::Draw(GU_Detail* gdp)
 {
-	//for (Tetrahedron *tet : m_tets)
-	//{
-	//	tet->Draw(gdp);
-	//}
+	// name handle is so we can assign each tet a name attribute for its fragment
+	// this should allow each fragment to function as an independent group for physics
+	GA_RWHandleS nameHandle(gdp->addStringTuple(GA_ATTRIB_PRIMITIVE, "name", 1));
 
-	for (TetFragment* frag : m_frags)
-	{
-		for (Tetrahedron* tet : frag->m_tets)
-		{
-			tet->Draw(gdp);
+	int i = 0;
+	for (TetFragment* frag : m_frags) {
+		for (Tetrahedron* tet : frag->m_tets) {
+			tet->Draw(gdp, i, nameHandle);
 		}
+
+		i++;
 	}
-	//for (Tetrahedron* tet : m_frags[0]->m_tets)
-	//{
-	//	tet->Draw(gdp);
-	//}
 }
 
 const std::vector<vec3> TetrahedralObject::GetPointsSingleton() {
