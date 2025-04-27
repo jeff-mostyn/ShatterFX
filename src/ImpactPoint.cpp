@@ -49,6 +49,7 @@ static PRM_Default forceLocDefault[]{
 	PRM_Default(0.0),
 	PRM_Default(0.0)
 };
+static PRM_Default exportFileDefault(0, "out");
 
 // DECLARE PARAMETER RANGES
 static PRM_Range forceMagRange(PRM_RANGE_RESTRICTED, 1.0, PRM_RANGE_RESTRICTED, 250000.0);
@@ -68,6 +69,13 @@ PRM_Template SOP_Impact::myTemplateList[] = {
 		&forceLocName,    // Parameter name
 		forceLocDefault),
 	PRM_Template(PRM_CALLBACK, 1, &pickButtonName, 0, 0, 0, SOP_Impact::PickCallback),
+	PRM_Template(
+		PRM_STRING,       
+		1,                
+		&filenameName,         
+		&exportFileDefault
+	),
+	PRM_Template(PRM_CALLBACK, 1, &exportButtonName, 0, 0, 0, SOP_Impact::ExportCallback),
 
 	PRM_Template()
 };
@@ -269,63 +277,112 @@ int SOP_Impact::PickCallback(void* data, int index,
 	// use this link for help setting up next node https://www.sidefx.com/docs/hdk/_h_d_k__node_intro__working_with_nodes.html
 	
 	// Variables
-	OP_Network* parent = (OP_Network*)(sop->getParent());
-	OP_Node* geo = OPgetDirector()->findNode("/obj/geo1");
-	OP_Node* shatterNode;
-	OP_Node* convertTetsNode;
-	OP_Node* fuseNode;
+	OP_Network* parent = (OP_Network*)(sop->getParent()); // the network in which this node exists
+	OP_Node* fileNode = parent->findNode("shatterExportFile1");
+	OP_Node* fractureNode;
+	OP_Node* fractureNodeExisting = parent->findNode("CVD1");
 	OP_Node* input;
+
+	// remove the CVD1 node if it already exists
+	if (fractureNodeExisting) {
+		parent->destroyNode(fractureNodeExisting);
+	}
 
 	// ---------------------------------------------------------
 	//					Create & Attach CVD Node
 	// ---------------------------------------------------------
 	// create node
-	shatterNode = parent->createNode("CusCentroidalVoronoi", "CVD1");
+	fractureNode = parent->createNode("CusCentroidalVoronoi", "CVD1");
 	
 	// set parameters
-	shatterNode->setFloat("forceMag", 0, time, forceMag);
+	fractureNode->setFloat("forceMag", 0, time, forceMag);
 
-	shatterNode->setFloat("forceDir", 0, time, forceDir[0]);
-	shatterNode->setFloat("forceDir", 1, time, forceDir[1]);
-	shatterNode->setFloat("forceDir", 2, time, forceDir[2]);
+	fractureNode->setFloat("forceDir", 0, time, forceDir[0]);
+	fractureNode->setFloat("forceDir", 1, time, forceDir[1]);
+	fractureNode->setFloat("forceDir", 2, time, forceDir[2]);
 
-	shatterNode->setFloat("forceLoc", 0, time, forceLoc[0]);
-	shatterNode->setFloat("forceLoc", 1, time, forceLoc[1]);
-	shatterNode->setFloat("forceLoc", 2, time, forceLoc[2]);
+	fractureNode->setFloat("forceLoc", 0, time, forceLoc[0]);
+	fractureNode->setFloat("forceLoc", 1, time, forceLoc[1]);
+	fractureNode->setFloat("forceLoc", 2, time, forceLoc[2]);
 
 	// connect the node
 	input = parent->findNode("tetconform1");  // find /obj/geo1/tetConform1 as relative path
-	if (input)
-	{
-		shatterNode->setInput(0, input);       // set first input to /obj/tetConform
+	if (input) {
+		fractureNode->setInput(0, input);       // set first input to /obj/tetConform
 	}
-
-	// --------------------------------------------- ------------
-	//					Create & Attach Fuse Node
-	// ---------------------------------------------------------
-	// create node
-	/*fuseNode = parent->createNode("fuse", "Fuse1");
-
-	if (!fuseNode) {
-		std::cout << "Failed to fuse node!" << std::endl;
-	}
-	else {
-		std::cout << "Successfully created fuse node." << std::endl;
-
-		// set parameters
-		fuseNode->getParm("tol3d").setValue(1.0f, 0, time);
-
-		// connect the node
-		fuseNode->setInput(0, shatterNode);
-	}*/
 
 	// ---------------------------------------------------------
 	//						Arrange Nodes
 	// ---------------------------------------------------------
 	// now that done we're done connecting it, position it relative to its inputs
-	shatterNode->moveToGoodPosition();
-	//fuseNode->moveToGoodPosition();
-
+	fractureNode->moveToGoodPosition();
 	sop->forceRecook(); // Trigger cookMySop again
+
+	if (fileNode) {
+		fileNode->setInput(0, fractureNode);
+		fileNode->moveToGoodPosition();
+	}
+
+	fractureNode->setCurrent(1);
+
 	return 1;
+}
+
+int SOP_Impact::ExportCallback(void* data, int index,
+	float time, const PRM_Template*) {
+	
+	// get SOP and context
+	SOP_Impact* sop = static_cast<SOP_Impact*>(data);
+	OP_Context myContext(time);
+
+	UT_String outputFile;
+	sop->EXPORT_FILE(outputFile, time);
+
+	OP_Network* parent = (OP_Network*)(sop->getParent());
+	OP_Node* fractureNode = parent->findNode("CVD1");
+	OP_Node* fileNode;
+	OP_Node* fileNodeExisting = parent->findNode("shatterExportFile1");
+	
+
+	// ---------------------------------------------------------
+	//			Create File Node or Assign Existing One
+	// ---------------------------------------------------------
+	if (!fileNodeExisting) {
+		fileNode = parent->createNode("file", "shatterExportFile1");
+
+		if (!fileNode) {
+			std::cout << "Failed to fuse node!" << std::endl;
+		}
+		else {
+			std::cout << "Successfully created fuse node." << std::endl;
+		}
+	}
+	else {
+		fileNode = fileNodeExisting;
+	}
+
+	// if success, set node up and cook it
+	if (fileNode) {
+		// set parameters
+		string fullPath = "$HIP/" + (std::string)outputFile + ".obj";
+
+		PRM_Parm* filemodeParm = &fileNode->getParm("filemode");
+		if (filemodeParm != nullptr) {
+			std::cout << "setting filemode param" << std::endl;
+			fileNode->setInt("filemode", 0, time, 2);
+		}
+
+		fileNode->setString(fullPath, CH_STRING_LITERAL, "file", 0, time);
+
+		if (fractureNode) {
+			fileNode->setInput(0, fractureNode);
+			fileNode->moveToGoodPosition();
+			fileNode->forceRecook();
+		}
+	}
+
+	// set as current node, but doesn't seem to run it
+	fileNode->setCurrent(1);
+
+	return 0;
 }

@@ -80,7 +80,14 @@ namespace HDK_Sample {
             return vec3(x, y, z);
         }
 
+        void EXPORT_FILE(UT_String& _str, fpreal t) {
+            return evalString(_str, "outputFile", 0, t);
+        }
+
         static int PickCallback(void* data, int index,
+            float time, const PRM_Template*);
+
+        static int ExportCallback(void* data, int index,
             float time, const PRM_Template*);
         ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
