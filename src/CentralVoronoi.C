@@ -68,7 +68,8 @@ static PRM_Name fractureToughnessName("fractureToughness", "Fracture Toughness (
 static PRM_Name forceMagName("forceMag", "Impact Force Magnitude (N)");
 static PRM_Name forceDirName("forceDir", "Impact Force Direction");
 static PRM_Name forceLocName("forceLoc", "Impact Force Location");
-
+static PRM_Name filenameName("outputFile", "Output File (no suffix)");
+static PRM_Name exportButtonName("export", "Export File");
 
 // SET PARAMETER DEFAULTS
 
@@ -92,6 +93,7 @@ static PRM_Default forceLocDefault[]{
 	PRM_Default(0.0),
 	PRM_Default(0.0)
 };
+static PRM_Default exportFileDefault(0, "out");
 
 // DECLARE PARAMETER RANGES
 static PRM_Range youngsModulusRange(PRM_RANGE_RESTRICTED, 0.01, PRM_RANGE_RESTRICTED, 1200.0);
@@ -122,6 +124,13 @@ PRM_Template SOP_CVD::myTemplateList[] = {
 		3,              // Number of components
 		&forceLocName,    // Parameter name
 		forceLocDefault),
+	PRM_Template(
+		PRM_STRING,
+		1,
+		&filenameName,
+		&exportFileDefault
+	),
+	PRM_Template(PRM_CALLBACK, 1, &exportButtonName, 0, 0, 0, SOP_CVD::ExportCallback),
 
     PRM_Template()
 };
@@ -571,4 +580,65 @@ void SOP_CVD::DrawVoronoiCells(GU_Detail* gdp) {
 			}
 		}
 	}
+}
+
+int SOP_CVD::ExportCallback(void* data, int index,
+	float time, const PRM_Template*) {
+
+	// get SOP and context
+	SOP_CVD* sop = static_cast<SOP_CVD*>(data);
+	OP_Context myContext(time);
+
+	UT_String outputFile;
+	sop->EXPORT_FILE(outputFile, time);
+
+	OP_Network* parent = (OP_Network*)(sop->getParent());
+	OP_Node* fileNode;
+	OP_Node* fileNodeExisting = parent->findNode("shatterExportFile1");
+
+
+	// ---------------------------------------------------------
+	//			Create File Node or Assign Existing One
+	// ---------------------------------------------------------
+	if (!fileNodeExisting) {
+		fileNode = parent->createNode("file", "shatterExportFile1");
+
+		if (!fileNode) {
+			std::cout << "Failed to fuse node!" << std::endl;
+		}
+		else {
+			std::cout << "Successfully created fuse node." << std::endl;
+		}
+	}
+	else {
+		fileNode = fileNodeExisting;
+	}
+
+	// if success, set node up and cook it
+	if (fileNode) {
+		// set parameters
+		string fullPath = "$HIP/" + (std::string)outputFile + ".obj";
+
+		PRM_Parm* filemodeParm = &fileNode->getParm("filemode");
+		if (filemodeParm != nullptr) {
+			std::cout << "setting filemode param" << std::endl;
+			fileNode->setInt("filemode", 0, time, 2);
+		}
+
+		fileNode->setString(fullPath, CH_STRING_LITERAL, "file", 0, time);
+
+		if (sop) {
+			fileNode->setInput(0, sop);
+			fileNode->moveToGoodPosition();
+			fileNode->forceRecook();
+		}
+	}
+
+	// set as current node and run it
+	sop->setCurrent(0);
+	fileNode->setCurrent(1);
+	fileNode->setRender(1);
+	fileNode->setDisplay(1);
+
+	return 0;
 }

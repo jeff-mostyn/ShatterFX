@@ -32,7 +32,7 @@ using namespace HDK_Sample;
 static PRM_Name forceMagName("forceMag", "Impact Force Magnitude (N)");
 static PRM_Name forceDirName("forceDir", "Impact Force Direction");
 static PRM_Name forceLocName("forceLoc", "Impact Force Location");
-static PRM_Name pickButtonName("getpos", "Get Selected Point Position");
+static PRM_Name pickButtonName("getpos", "Calculate Fracture");
 static PRM_Name filenameName("outputFile", "Output File (no suffix)");
 static PRM_Name exportButtonName("export", "Export File");
 
