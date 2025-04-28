@@ -316,6 +316,8 @@ int SOP_Impact::PickCallback(void* data, int index,
 	// ---------------------------------------------------------
 	// now that done we're done connecting it, position it relative to its inputs
 	fractureNode->moveToGoodPosition();
+	fractureNode->setRender(1);
+	fractureNode->setDisplay(1);
 	sop->forceRecook(); // Trigger cookMySop again
 
 	if (fileNode) {
@@ -323,6 +325,7 @@ int SOP_Impact::PickCallback(void* data, int index,
 		fileNode->moveToGoodPosition();
 	}
 
+	sop->setCurrent(0);
 	fractureNode->setCurrent(1);
 
 	return 1;

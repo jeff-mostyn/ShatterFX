@@ -378,7 +378,7 @@ SOP_CVD::cookMySop(OP_Context &context)
 			}
 
 			obj->GenerateFragments(fractureSites);
-			obj->MoveFragments(cellSize);
+			//obj->MoveFragments(cellSize);
 			obj->Draw(gdp);
 			gdp->consolidatePoints(0.001f);
 		}
