@@ -70,6 +70,7 @@ static PRM_Name forceDirName("forceDir", "Impact Force Direction");
 static PRM_Name forceLocName("forceLoc", "Impact Force Location");
 static PRM_Name filenameName("outputFile", "Output File (no suffix)");
 static PRM_Name exportButtonName("export", "Export File");
+static PRM_Name physicsSimButtonName("physics", "Simulate Physics");
 
 // SET PARAMETER DEFAULTS
 
@@ -131,6 +132,7 @@ PRM_Template SOP_CVD::myTemplateList[] = {
 		&exportFileDefault
 	),
 	PRM_Template(PRM_CALLBACK, 1, &exportButtonName, 0, 0, 0, SOP_CVD::ExportCallback),
+	PRM_Template(PRM_CALLBACK, 1, &physicsSimButtonName, 0, 0, 0, SOP_CVD::PhysicsSimCallback),
 
     PRM_Template()
 };
@@ -639,6 +641,184 @@ int SOP_CVD::ExportCallback(void* data, int index,
 	fileNode->setCurrent(1);
 	fileNode->setRender(1);
 	fileNode->setDisplay(1);
+
+	return 0;
+}
+
+int SOP_CVD::PhysicsSimCallback(void* data, int index,
+	float time, const PRM_Template*)
+{
+	// get SOP and context
+	SOP_Impact* sop = static_cast<SOP_Impact*>(data);
+	OP_Context myContext(time);
+
+	OP_Network* parent = (OP_Network*)(sop->getParent());
+	OP_Node* fractureNode = parent->findNode("CVD1");
+	OP_Node* groupNode;
+	OP_Node* groupNodeExisting = parent->findNode("group1");
+
+
+	// ---------------------------------------------------------
+	//			Create Group Node or Assign Existing One
+	// ---------------------------------------------------------
+	if (!groupNodeExisting) {
+		groupNode = parent->createNode("groupcreate", "group1");
+
+		if (!groupNode) {
+			std::cout << "Failed to create group node!" << std::endl;
+		}
+		else {
+			std::cout << "Successfully created group node." << std::endl;
+		}
+	}
+	else {
+		groupNode = groupNodeExisting;
+	}
+
+	// if success, set node up and cook it
+	if (groupNode) {
+		// set parameters
+		PRM_Parm* groupParm = &groupNode->getParm("grouptype");
+		if (groupParm != nullptr) {
+			std::cout << "setting Group Type param" << std::endl;
+			groupNode->setInt("grouptype", 0, time, 1);
+		}
+
+		if (fractureNode) {
+			groupNode->setInput(0, fractureNode);
+			groupNode->moveToGoodPosition();
+			groupNode->forceRecook();
+		}
+	}
+
+	OP_Node* restNode;
+	OP_Node* restNodeExisting = parent->findNode("rest1");
+
+
+	// ---------------------------------------------------------
+	//			Create Rest Position Node or Assign Existing One
+	// ---------------------------------------------------------
+	if (!restNodeExisting) {
+		restNode = parent->createNode("rest", "rest1");
+
+		if (!restNode) {
+			std::cout << "Failed to create rest node!" << std::endl;
+		}
+		else {
+			std::cout << "Successfully created rest node." << std::endl;
+		}
+	}
+	else {
+		restNode = restNodeExisting;
+	}
+
+	// if success, set node up and cook it
+	if (restNode) {
+		// set parameters
+		//PRM_Parm* groupParm = &groupNode->getParm("grouptype");
+		//if (groupParm != nullptr) {
+		//	std::cout << "setting Group Type param" << std::endl;
+		//	groupNode->setInt("grouptype", 0, time, 1);
+		//}
+
+		if (groupNode) {
+			restNode->setInput(0, groupNode);
+			restNode->moveToGoodPosition();
+			restNode->forceRecook();
+		}
+	}
+
+	OP_Node* assembleNode;
+	OP_Node* assembleNodeExisting = parent->findNode("assemble1");
+
+
+	// ---------------------------------------------------------
+	//			Create Rest Position Node or Assign Existing One
+	// ---------------------------------------------------------
+	if (!assembleNodeExisting) {
+		assembleNode = parent->createNode("assemble", "assemble1");
+
+		if (!assembleNode) {
+			std::cout << "Failed to create assemble node!" << std::endl;
+		}
+		else {
+			std::cout << "Successfully created assemble node." << std::endl;
+		}
+	}
+	else {
+		assembleNode = assembleNodeExisting;
+	}
+
+	// if success, set node up and cook it
+	if (assembleNode) {
+		// set parameters
+		PRM_Parm* assembleParm1 = &assembleNode->getParm("newname");
+		if (assembleParm1 != nullptr) {
+			std::cout << "setting Assemble1 param" << std::endl;
+			assembleNode->setInt("newname", 0, time, 0);
+		}
+
+		PRM_Parm* assembleParm2 = &assembleNode->getParm("pack_geo");
+		if (assembleParm2 != nullptr) {
+			std::cout << "setting Assemble2 param" << std::endl;
+			assembleNode->setInt("pack_geo", 0, time, 1);
+		}
+
+		if (restNode) {
+			assembleNode->setInput(0, restNode);
+			assembleNode->moveToGoodPosition();
+			assembleNode->forceRecook();
+		}
+	}
+
+
+	OP_Node* rbdNode;
+	OP_Node* rbdNodeExisting = parent->findNode("rbdbulletsolver1");
+
+
+	// ---------------------------------------------------------
+	//			Create Rest Position Node or Assign Existing One
+	// ---------------------------------------------------------
+	if (!rbdNodeExisting) {
+		rbdNode = parent->createNode("rbdbulletsolver", "rbdbulletsolver1");
+
+		if (!rbdNode) {
+			std::cout << "Failed to create solver node!" << std::endl;
+		}
+		else {
+			std::cout << "Successfully created solver node." << std::endl;
+		}
+	}
+	else {
+		rbdNode = rbdNodeExisting;
+	}
+
+	// if success, set node up and cook it
+	if (rbdNode) {
+		// set parameters
+		//PRM_Parm* assembleParm1 = &assembleNode->getParm("newname");
+		//if (assembleParm1 != nullptr) {
+		//	std::cout << "setting Assemble1 param" << std::endl;
+		//	assembleNode->setInt("newname", 0, time, 0);
+		//}
+
+		//PRM_Parm* assembleParm2 = &assembleNode->getParm("pack_geo");
+		//if (assembleParm2 != nullptr) {
+		//	std::cout << "setting Assemble2 param" << std::endl;
+		//	assembleNode->setInt("pack_geo", 0, time, 1);
+		//}
+
+		if (assembleNode) {
+			rbdNode->setInput(0, assembleNode);
+			rbdNode->moveToGoodPosition();
+			rbdNode->forceRecook();
+		}
+	}
+	// set as current node and run it
+	sop->setCurrent(0);
+	rbdNode->setCurrent(1);
+	rbdNode->setRender(1);
+	rbdNode->setDisplay(1);
 
 	return 0;
 }

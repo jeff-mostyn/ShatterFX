@@ -117,6 +117,9 @@ namespace HDK_Sample {
         static int ExportCallback(void* data, int index,
             float time, const PRM_Template*);
 
+        static int PhysicsSimCallback(void* data, int index,
+            float time, const PRM_Template*);
+
         ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
         /// Member variables are stored in the actual SOP, not with the geometry
