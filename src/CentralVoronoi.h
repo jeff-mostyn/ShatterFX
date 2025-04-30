@@ -114,10 +114,16 @@ namespace HDK_Sample {
         void DrawVoronoiEdge(GU_Detail* gdp, vec3 p1, vec3 p2);
         void DrawVoronoiCells(GU_Detail* gdp);
 
+        // Export Fractured Mesh
         static int ExportCallback(void* data, int index,
             float time, const PRM_Template*);
 
+        // Run Physics Sim with cone collision
         static int PhysicsSimCallback(void* data, int index,
+            float time, const PRM_Template*);
+
+        // Exploded View of Fractured Mesh
+        static int ExplodedViewCallback(void* data, int index,
             float time, const PRM_Template*);
 
         ///////////////////////////////////////////////////////////////////////////////////////////////////////////

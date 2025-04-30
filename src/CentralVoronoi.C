@@ -71,6 +71,7 @@ static PRM_Name forceLocName("forceLoc", "Impact Force Location");
 static PRM_Name filenameName("outputFile", "Output File (no suffix)");
 static PRM_Name exportButtonName("export", "Export File");
 static PRM_Name physicsSimButtonName("physics", "Simulate Physics");
+static PRM_Name explodedViewButtonName("explode", "Explode View");
 
 // SET PARAMETER DEFAULTS
 
@@ -133,6 +134,7 @@ PRM_Template SOP_CVD::myTemplateList[] = {
 	),
 	PRM_Template(PRM_CALLBACK, 1, &exportButtonName, 0, 0, 0, SOP_CVD::ExportCallback),
 	PRM_Template(PRM_CALLBACK, 1, &physicsSimButtonName, 0, 0, 0, SOP_CVD::PhysicsSimCallback),
+	PRM_Template(PRM_CALLBACK, 1, &explodedViewButtonName, 0, 0, 0, SOP_CVD::ExplodedViewCallback),
 
     PRM_Template()
 };
@@ -586,31 +588,27 @@ void SOP_CVD::DrawVoronoiCells(GU_Detail* gdp) {
 
 int SOP_CVD::ExportCallback(void* data, int index,
 	float time, const PRM_Template*) {
-
-	// get SOP and context
+	// Get SOP and context
 	SOP_CVD* sop = static_cast<SOP_CVD*>(data);
 	OP_Context myContext(time);
 
+	// Set up Input for Output File Name
 	UT_String outputFile;
 	sop->EXPORT_FILE(outputFile, time);
 
+	// Get Parent Network
 	OP_Network* parent = (OP_Network*)(sop->getParent());
-	OP_Node* fileNode;
-	OP_Node* fileNodeExisting = parent->findNode("shatterExportFile1");
-
+	
 
 	// ---------------------------------------------------------
 	//			Create File Node or Assign Existing One
 	// ---------------------------------------------------------
+	OP_Node* fileNode;
+	OP_Node* fileNodeExisting = parent->findNode("shatterExportFile1");
+
+	// Create or Assign Existing Node
 	if (!fileNodeExisting) {
 		fileNode = parent->createNode("file", "shatterExportFile1");
-
-		if (!fileNode) {
-			std::cout << "Failed to fuse node!" << std::endl;
-		}
-		else {
-			std::cout << "Successfully created fuse node." << std::endl;
-		}
 	}
 	else {
 		fileNode = fileNodeExisting;
@@ -618,17 +616,21 @@ int SOP_CVD::ExportCallback(void* data, int index,
 
 	// if success, set node up and cook it
 	if (fileNode) {
-		// set parameters
+		// Set up parameters
+
+		// Full path to output file
 		string fullPath = "$HIP/" + (std::string)outputFile + ".obj";
 
+		// Set File Mode to Write Files
 		PRM_Parm* filemodeParm = &fileNode->getParm("filemode");
 		if (filemodeParm != nullptr) {
-			std::cout << "setting filemode param" << std::endl;
 			fileNode->setInt("filemode", 0, time, 2);
 		}
 
+		// Set full path for output file location + name
 		fileNode->setString(fullPath, CH_STRING_LITERAL, "file", 0, time);
 
+		// Set input as CVD Fracture Geometry
 		if (sop) {
 			fileNode->setInput(0, sop);
 			fileNode->moveToGoodPosition();
@@ -636,7 +638,7 @@ int SOP_CVD::ExportCallback(void* data, int index,
 		}
 	}
 
-	// set as current node and run it
+	// Set as current node and run it
 	sop->setCurrent(0);
 	fileNode->setCurrent(1);
 	fileNode->setRender(1);
@@ -648,28 +650,24 @@ int SOP_CVD::ExportCallback(void* data, int index,
 int SOP_CVD::PhysicsSimCallback(void* data, int index,
 	float time, const PRM_Template*)
 {
-	// get SOP and context
+	// Get SOP and context
 	SOP_Impact* sop = static_cast<SOP_Impact*>(data);
 	OP_Context myContext(time);
 
+	// Get Parent network and CVD fracture node
 	OP_Network* parent = (OP_Network*)(sop->getParent());
 	OP_Node* fractureNode = parent->findNode("CVD1");
+	
+
+	// ---------------------------------------------------------
+	//			Create Fracture Group Node or Assign Existing One
+	// ---------------------------------------------------------
+	// Create or Assign Existing Node
 	OP_Node* groupNode;
 	OP_Node* groupNodeExisting = parent->findNode("fractureGroup");
 
-
-	// ---------------------------------------------------------
-	//			Create Group Node For Fracture or Assign Existing One
-	// ---------------------------------------------------------
 	if (!groupNodeExisting) {
 		groupNode = parent->createNode("groupcreate", "fractureGroup");
-
-		if (!groupNode) {
-			std::cout << "Failed to create fractureGroup node!" << std::endl;
-		}
-		else {
-			std::cout << "Successfully created fractureGroup node." << std::endl;
-		}
 	}
 	else {
 		groupNode = groupNodeExisting;
@@ -677,13 +675,15 @@ int SOP_CVD::PhysicsSimCallback(void* data, int index,
 
 	// if success, set node up and cook it
 	if (groupNode) {
-		// set parameters
+		// Set up parameters
+
+		// Set group type to points
 		PRM_Parm* groupParm = &groupNode->getParm("grouptype");
 		if (groupParm != nullptr) {
-			std::cout << "setting fractureGroup Group Type param to points" << std::endl;
 			groupNode->setInt("grouptype", 0, time, 1);
 		}
 
+		// Set input to CVD fracture node
 		if (fractureNode) {
 			groupNode->setInput(0, fractureNode);
 			groupNode->moveToGoodPosition();
@@ -691,22 +691,16 @@ int SOP_CVD::PhysicsSimCallback(void* data, int index,
 		}
 	}
 
-	OP_Node* restNode;
-	OP_Node* restNodeExisting = parent->findNode("rest1");
-
 
 	// ---------------------------------------------------------
 	//			Create Rest Position Node or Assign Existing One
 	// ---------------------------------------------------------
+	OP_Node* restNode;
+	OP_Node* restNodeExisting = parent->findNode("rest1");
+
+	// Create or Assign Existing Node
 	if (!restNodeExisting) {
 		restNode = parent->createNode("rest", "rest1");
-
-		if (!restNode) {
-			std::cout << "Failed to create rest node!" << std::endl;
-		}
-		else {
-			std::cout << "Successfully created rest node." << std::endl;
-		}
 	}
 	else {
 		restNode = restNodeExisting;
@@ -714,13 +708,7 @@ int SOP_CVD::PhysicsSimCallback(void* data, int index,
 
 	// if success, set node up and cook it
 	if (restNode) {
-		// set parameters
-		//PRM_Parm* groupParm = &groupNode->getParm("grouptype");
-		//if (groupParm != nullptr) {
-		//	std::cout << "setting Group Type param" << std::endl;
-		//	groupNode->setInt("grouptype", 0, time, 1);
-		//}
-
+		// Set input to group node
 		if (groupNode) {
 			restNode->setInput(0, groupNode);
 			restNode->moveToGoodPosition();
@@ -728,22 +716,16 @@ int SOP_CVD::PhysicsSimCallback(void* data, int index,
 		}
 	}
 
+	
+	// ---------------------------------------------------------
+	//			Create Assemble Node or Assign Existing One
+	// ---------------------------------------------------------
 	OP_Node* assembleNode;
 	OP_Node* assembleNodeExisting = parent->findNode("assemble1");
 
-
-	// ---------------------------------------------------------
-	//			Create Rest Position Node or Assign Existing One
-	// ---------------------------------------------------------
+	// Create or Assign Existing Node
 	if (!assembleNodeExisting) {
 		assembleNode = parent->createNode("assemble", "assemble1");
-
-		if (!assembleNode) {
-			std::cout << "Failed to create assemble node!" << std::endl;
-		}
-		else {
-			std::cout << "Successfully created assemble node." << std::endl;
-		}
 	}
 	else {
 		assembleNode = assembleNodeExisting;
@@ -751,19 +733,21 @@ int SOP_CVD::PhysicsSimCallback(void* data, int index,
 
 	// if success, set node up and cook it
 	if (assembleNode) {
-		// set parameters
+		// Set up parameters
+
+		// Set Create Name Attribute to False
 		PRM_Parm* assembleParm1 = &assembleNode->getParm("newname");
 		if (assembleParm1 != nullptr) {
-			std::cout << "setting Assemble1 param" << std::endl;
 			assembleNode->setInt("newname", 0, time, 0);
 		}
 
+		// Set Create Packed Primitives to True
 		PRM_Parm* assembleParm2 = &assembleNode->getParm("pack_geo");
 		if (assembleParm2 != nullptr) {
-			std::cout << "setting Assemble2 param" << std::endl;
 			assembleNode->setInt("pack_geo", 0, time, 1);
 		}
 
+		// Set input to Rest Node
 		if (restNode) {
 			assembleNode->setInput(0, restNode);
 			assembleNode->moveToGoodPosition();
@@ -777,17 +761,11 @@ int SOP_CVD::PhysicsSimCallback(void* data, int index,
 	// ---------------------------------------------------------
 	OP_Node* coneGroupNode;
 	OP_Node* coneGroupNodeExisting = parent->findNode("coneGroup");
-	OP_Node* impactNode = parent->findNode("ImpactPoint1");
+	OP_Node* impactNode = parent->findNode("ImpactPoint1"); // is there a better way? since this is user generated
 
+	// Create or Assign Existing Node
 	if (!coneGroupNodeExisting) {
 		coneGroupNode = parent->createNode("groupcreate", "coneGroup");
-
-		if (!coneGroupNode) {
-			std::cout << "Failed to create coneGroup node!" << std::endl;
-		}
-		else {
-			std::cout << "Successfully created coneGroup node." << std::endl;
-		}
 	}
 	else {
 		coneGroupNode = coneGroupNodeExisting;
@@ -795,17 +773,19 @@ int SOP_CVD::PhysicsSimCallback(void* data, int index,
 
 	// if success, set node up and cook it
 	if (coneGroupNode) {
-		// set parameters
+		// Set up parameters
+
+		// Set group type to points
 		PRM_Parm* groupParm1 = &coneGroupNode->getParm("grouptype");
 		if (groupParm1 != nullptr) {
-			std::cout << "setting coneGroup Group Type param to points" << std::endl;
 			coneGroupNode->setInt("grouptype", 0, time, 1);
 		}
 
+		// Set group to cone
 		string cone = "cone";
 		coneGroupNode->setString(cone, CH_STRING_LITERAL, "basegroup", 0, time);
 
-
+		// Set input to impact Node if it exists
 		if (impactNode) {
 			coneGroupNode->setInput(0, impactNode);
 			coneGroupNode->moveToGoodPosition();
@@ -818,17 +798,11 @@ int SOP_CVD::PhysicsSimCallback(void* data, int index,
 	//			Create Blast Node or Assign Existing One
 	// ---------------------------------------------------------
 	OP_Node* blastNode;
-	OP_Node* blastNodeExisting = parent->findNode("blast1");
+	OP_Node* blastNodeExisting = parent->findNode("coneBlast");
 
+	// Create or Assign Existing Node
 	if (!blastNodeExisting) {
-		blastNode = parent->createNode("blast", "blast1");
-
-		if (!blastNode) {
-			std::cout << "Failed to create blast node!" << std::endl;
-		}
-		else {
-			std::cout << "Successfully created blast node." << std::endl;
-		}
+		blastNode = parent->createNode("blast", "coneBlast");
 	}
 	else {
 		blastNode = blastNodeExisting;
@@ -836,17 +810,19 @@ int SOP_CVD::PhysicsSimCallback(void* data, int index,
 
 	// if success, set node up and cook it
 	if (blastNode) {
-		// set parameters
+		// Set up parameters
+
+		// set group to cone group
 		string cone = "cone";
 		blastNode->setString(cone, CH_STRING_LITERAL, "group", 0, time);
 
+		// Negate Blast node to keep only cone group points
 		PRM_Parm* blastParm = &blastNode->getParm("negate");
 		if (blastParm != nullptr) {
-			std::cout << "setting blast1 negate param" << std::endl;
 			blastNode->setInt("negate", 0, time, 1);
 		}
 
-
+		// set blast node input to group node
 		if (coneGroupNode) {
 			blastNode->setInput(0, coneGroupNode);
 			blastNode->moveToGoodPosition();
@@ -856,20 +832,40 @@ int SOP_CVD::PhysicsSimCallback(void* data, int index,
 
 
 	// ---------------------------------------------------------
+	//			Create Transform Node or Assign Existing One
+	// ---------------------------------------------------------
+	OP_Node* transformNode;
+	OP_Node* transformNodeExisting = parent->findNode("coneTransform");
+
+	// Create or Assign Existing Node
+	if (!transformNodeExisting) {
+		transformNode = parent->createNode("xform", "coneTransform");
+	}
+	else {
+		transformNode = transformNodeExisting;
+	}
+
+	// if success, set node up and cook it
+	if (transformNode) {
+		// Set up parameters
+		
+		// Set transform node input to blast node
+		if (blastNode) {
+			transformNode->setInput(0, blastNode);
+			transformNode->moveToGoodPosition();
+			transformNode->forceRecook();
+		}
+	}
+
+	// ---------------------------------------------------------
 	//			Create RBD Solver Node or Assign Existing One
 	// ---------------------------------------------------------
 	OP_Node* rbdNode;
 	OP_Node* rbdNodeExisting = parent->findNode("rbdbulletsolver1");
 
+	// Create or Assign Existing Node
 	if (!rbdNodeExisting) {
 		rbdNode = parent->createNode("rbdbulletsolver", "rbdbulletsolver1");
-
-		if (!rbdNode) {
-			std::cout << "Failed to create solver node!" << std::endl;
-		}
-		else {
-			std::cout << "Successfully created solver node." << std::endl;
-		}
 	}
 	else {
 		rbdNode = rbdNodeExisting;
@@ -877,30 +873,88 @@ int SOP_CVD::PhysicsSimCallback(void* data, int index,
 
 	// if success, set node up and cook it
 	if (rbdNode) {
-		// set parameters
-		//PRM_Parm* assembleParm1 = &assembleNode->getParm("newname");
-		//if (assembleParm1 != nullptr) {
-		//	std::cout << "setting Assemble1 param" << std::endl;
-		//	assembleNode->setInt("newname", 0, time, 0);
-		//}
+		// Set up parameters
 
-		//PRM_Parm* assembleParm2 = &assembleNode->getParm("pack_geo");
-		//if (assembleParm2 != nullptr) {
-		//	std::cout << "setting Assemble2 param" << std::endl;
-		//	assembleNode->setInt("pack_geo", 0, time, 1);
-		//}
+		// Set Collision Type to Deforming to use keyframe animation on transform node
+		PRM_Parm* rbdParam1 = &rbdNode->getParm("collision_initialstate");
+		if (rbdParam1 != nullptr) {
+			rbdNode->setInt("collision_initialstate", 0, time, 2);
+		}
 
+		// Add ground plane
+		PRM_Parm* rbdParam2 = &rbdNode->getParm("useground");
+		if (rbdParam2 != nullptr) {
+			rbdNode->setInt("useground", 0, time, 1);
+		}
+
+		// Move ground plane down - right now hard coded might want to calculate a good value based on size of object
+		PRM_Parm* rbdParam3 = &rbdNode->getParm("ground_posy");
+		if (rbdParam3 != nullptr) {
+			rbdNode->setInt("ground_posy", 0, time, -2);
+		}
+
+		// Set input 0 to assemble node to get fractured geometry
 		if (assembleNode) {
 			rbdNode->setInput(0, assembleNode);
-			rbdNode->moveToGoodPosition();
-			rbdNode->forceRecook();
 		}
+
+		// Set input 3 to transform node to get cone collision geometry and any animation key framed
+		if (transformNode) {
+			rbdNode->setInput(3, transformNode);
+		}
+
+		rbdNode->moveToGoodPosition();
+		rbdNode->forceRecook();
 	}
+
 	// set as current node and run it
 	sop->setCurrent(0);
 	rbdNode->setCurrent(1);
 	rbdNode->setRender(1);
 	rbdNode->setDisplay(1);
+
+	return 0;
+}
+
+int SOP_CVD::ExplodedViewCallback(void* data, int index,
+	float time, const PRM_Template*) {
+	// Get SOP and context
+	SOP_CVD* sop = static_cast<SOP_CVD*>(data);
+	OP_Context myContext(time);
+
+	// Get Parent Network
+	OP_Network* parent = (OP_Network*)(sop->getParent());
+
+
+	// ---------------------------------------------------------
+	//			Create Exploded View Node or Assign Existing One
+	// ---------------------------------------------------------
+	OP_Node* explodedViewNode;
+	OP_Node* explodedViewNodeExisting = parent->findNode("explodedview1");
+
+	// Create or Assign Existing Node
+	if (!explodedViewNodeExisting) {
+		explodedViewNode = parent->createNode("explodedview::2.0", "explodedview1");
+	}
+	else {
+		explodedViewNode = explodedViewNodeExisting;
+	}
+
+	// if success, set node up and cook it
+	if (explodedViewNode) {
+		// Set input as CVD Fracture Geometry
+		if (sop) {
+			explodedViewNode->setInput(0, sop);
+			explodedViewNode->moveToGoodPosition();
+			explodedViewNode->forceRecook();
+		}
+	}
+
+	// Set as current node and run it
+	sop->setCurrent(0);
+	explodedViewNode->setCurrent(1);
+	explodedViewNode->setRender(1);
+	explodedViewNode->setDisplay(1);
 
 	return 0;
 }
