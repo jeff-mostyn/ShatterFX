@@ -216,32 +216,45 @@ SOP_Impact::cookMySop(OP_Context& context)
 		ydir = normal;
 		ydir.cross(xdir);
 		ydir.normalize();
+		
+		// create cone group
+		GA_PointGroup* coneGroup = gdp->newPointGroup("cone");
+		
+		//define cone parameters
+		float height = 0.5f;
+		float radius = 0.25f;
+		int numSides = 16;
 
-		// Scale length of cross arms
-		float crossLength = 0.5f;
+		// Compute base center
+		UT_Vector3 baseCenter = center + -1 * normal * height;
 
-		// draw line from impact point in direction of force
+		// draw cone
+		for (int i = 0; i < numSides; ++i) {
+			int next = (i + 1) % numSides;
 
-		// Normal
-		poly = GU_PrimPoly::build(gdp, 2, GU_POLY_OPEN);
-		p0 = poly->getPointOffset(0);
-		p1 = poly->getPointOffset(1);
-		gdp->setPos3(p0, center);
-		gdp->setPos3(p1, center + crossLength * normal);
+			// Create quad face
+			poly = GU_PrimPoly::build(gdp, 3, GU_POLY_CLOSED);
 
-		// X local direction line
-		poly = GU_PrimPoly::build(gdp, 2, GU_POLY_OPEN);
-		p0 = poly->getPointOffset(0);
-		p1 = poly->getPointOffset(1);
-		gdp->setPos3(p0, center - crossLength * xdir);
-		gdp->setPos3(p1, center + crossLength * xdir);
+			// Add points for the quad
+			GA_Offset p0 = poly->getPointOffset(0);
+			coneGroup->addOffset(p0);
+			GA_Offset p1 = poly->getPointOffset(1);
+			coneGroup->addOffset(p1);
+			GA_Offset p2 = poly->getPointOffset(2);
+			coneGroup->addOffset(p2);
 
-		// Y local direction line
-		poly = GU_PrimPoly::build(gdp, 2, GU_POLY_OPEN);
-		p0 = poly->getPointOffset(0);
-		p1 = poly->getPointOffset(1);
-		gdp->setPos3(p0, center - crossLength * ydir);
-		gdp->setPos3(p1, center + crossLength * ydir);
+			float theta1 = 2 * M_PI * i / numSides;
+			float theta2 = 2 * M_PI * next / numSides;
+			UT_Vector3 dir1 = cos(theta1) * xdir + sin(theta1) * ydir;
+			UT_Vector3 pos1 = baseCenter + radius * dir1;
+			UT_Vector3 dir2 = cos(theta2) * xdir + sin(theta2) * ydir;
+			UT_Vector3 pos2 = baseCenter + radius * dir2;
+
+			// Set positions
+			gdp->setPos3(p0, center);
+			gdp->setPos3(p1, pos1);
+			gdp->setPos3(p2, pos2);
+		}
 
 		// Tell the interrupt server that we've completed. Must do this
 		// regardless of what opStart() returns.

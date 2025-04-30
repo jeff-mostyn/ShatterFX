@@ -655,20 +655,20 @@ int SOP_CVD::PhysicsSimCallback(void* data, int index,
 	OP_Network* parent = (OP_Network*)(sop->getParent());
 	OP_Node* fractureNode = parent->findNode("CVD1");
 	OP_Node* groupNode;
-	OP_Node* groupNodeExisting = parent->findNode("group1");
+	OP_Node* groupNodeExisting = parent->findNode("fractureGroup");
 
 
 	// ---------------------------------------------------------
-	//			Create Group Node or Assign Existing One
+	//			Create Group Node For Fracture or Assign Existing One
 	// ---------------------------------------------------------
 	if (!groupNodeExisting) {
-		groupNode = parent->createNode("groupcreate", "group1");
+		groupNode = parent->createNode("groupcreate", "fractureGroup");
 
 		if (!groupNode) {
-			std::cout << "Failed to create group node!" << std::endl;
+			std::cout << "Failed to create fractureGroup node!" << std::endl;
 		}
 		else {
-			std::cout << "Successfully created group node." << std::endl;
+			std::cout << "Successfully created fractureGroup node." << std::endl;
 		}
 	}
 	else {
@@ -680,7 +680,7 @@ int SOP_CVD::PhysicsSimCallback(void* data, int index,
 		// set parameters
 		PRM_Parm* groupParm = &groupNode->getParm("grouptype");
 		if (groupParm != nullptr) {
-			std::cout << "setting Group Type param" << std::endl;
+			std::cout << "setting fractureGroup Group Type param to points" << std::endl;
 			groupNode->setInt("grouptype", 0, time, 1);
 		}
 
@@ -772,13 +772,95 @@ int SOP_CVD::PhysicsSimCallback(void* data, int index,
 	}
 
 
+	// ---------------------------------------------------------
+	//			Get Cone Collider from Impact Node
+	// ---------------------------------------------------------
+	OP_Node* coneGroupNode;
+	OP_Node* coneGroupNodeExisting = parent->findNode("coneGroup");
+	OP_Node* impactNode = parent->findNode("ImpactPoint1");
+
+	if (!coneGroupNodeExisting) {
+		coneGroupNode = parent->createNode("groupcreate", "coneGroup");
+
+		if (!coneGroupNode) {
+			std::cout << "Failed to create coneGroup node!" << std::endl;
+		}
+		else {
+			std::cout << "Successfully created coneGroup node." << std::endl;
+		}
+	}
+	else {
+		coneGroupNode = coneGroupNodeExisting;
+	}
+
+	// if success, set node up and cook it
+	if (coneGroupNode) {
+		// set parameters
+		PRM_Parm* groupParm1 = &coneGroupNode->getParm("grouptype");
+		if (groupParm1 != nullptr) {
+			std::cout << "setting coneGroup Group Type param to points" << std::endl;
+			coneGroupNode->setInt("grouptype", 0, time, 1);
+		}
+
+		string cone = "cone";
+		coneGroupNode->setString(cone, CH_STRING_LITERAL, "basegroup", 0, time);
+
+
+		if (impactNode) {
+			coneGroupNode->setInput(0, impactNode);
+			coneGroupNode->moveToGoodPosition();
+			coneGroupNode->forceRecook();
+		}
+	}
+
+
+	// ---------------------------------------------------------
+	//			Create Blast Node or Assign Existing One
+	// ---------------------------------------------------------
+	OP_Node* blastNode;
+	OP_Node* blastNodeExisting = parent->findNode("blast1");
+
+	if (!blastNodeExisting) {
+		blastNode = parent->createNode("blast", "blast1");
+
+		if (!blastNode) {
+			std::cout << "Failed to create blast node!" << std::endl;
+		}
+		else {
+			std::cout << "Successfully created blast node." << std::endl;
+		}
+	}
+	else {
+		blastNode = blastNodeExisting;
+	}
+
+	// if success, set node up and cook it
+	if (blastNode) {
+		// set parameters
+		string cone = "cone";
+		blastNode->setString(cone, CH_STRING_LITERAL, "group", 0, time);
+
+		PRM_Parm* blastParm = &blastNode->getParm("negate");
+		if (blastParm != nullptr) {
+			std::cout << "setting blast1 negate param" << std::endl;
+			blastNode->setInt("negate", 0, time, 1);
+		}
+
+
+		if (coneGroupNode) {
+			blastNode->setInput(0, coneGroupNode);
+			blastNode->moveToGoodPosition();
+			blastNode->forceRecook();
+		}
+	}
+
+
+	// ---------------------------------------------------------
+	//			Create RBD Solver Node or Assign Existing One
+	// ---------------------------------------------------------
 	OP_Node* rbdNode;
 	OP_Node* rbdNodeExisting = parent->findNode("rbdbulletsolver1");
 
-
-	// ---------------------------------------------------------
-	//			Create Rest Position Node or Assign Existing One
-	// ---------------------------------------------------------
 	if (!rbdNodeExisting) {
 		rbdNode = parent->createNode("rbdbulletsolver", "rbdbulletsolver1");
 
