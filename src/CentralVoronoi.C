@@ -10,8 +10,10 @@
 #include <GU/GU_Detail.h>
 #include <GU/GU_PrimPoly.h>
 #include <CH/CH_LocalVariable.h>
+#include <PRM/PRM_Default.h>
 #include <PRM/PRM_Include.h>
 #include <PRM/PRM_SpareData.h>
+#include <PRM/PRM_Template.h>
 #include <OP/OP_Operator.h>
 #include <OP/OP_OperatorTable.h>
 #include <GU/GU_PrimTetrahedron.h>
@@ -160,6 +162,7 @@ PRM_Template SOP_CVD::myTemplateList[] = {
 	),
 	PRM_Template(PRM_FLT, 1, &forceMagName, &forceMagDefault, nullptr, &forceMagRange),
 		
+	PRM_Template(PRM_SEPARATOR, 0),
 	PRM_Template(PRM_LABEL, 1, &forceParamsHeaderName),
 	PRM_Template(
 		PRM_FLT,		// Declare a 3-float parameter
