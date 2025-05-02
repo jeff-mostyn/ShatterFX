@@ -64,6 +64,8 @@ static PRM_Name boundsName("bounds", "Voronoi Region Bounds");
 static PRM_Name cellSizeName("cellSize", "Move Fragments Spacing");
 static PRM_Name stiffnessName("stiffness", "Young's Modulus (GPa)");
 static PRM_Name strainRatioName("strainRatio", "Poisson Ratio");
+static PRM_Name energySpreadName("energySpread", "Energy Spread Factor");
+static PRM_Name energyPercentName("energyConsumptionPercent", "Energy Consumption Pct");
 static PRM_Name fractureToughnessName("fractureToughness", "Fracture Toughness (J/m^2)");
 static PRM_Name forceMagName("forceMag", "Impact Force Magnitude (N)");
 static PRM_Name forceDirName("forceDir", "Impact Force Direction");
@@ -84,6 +86,8 @@ static PRM_Default cellSizeDefault(1.0);
 static PRM_Default stiffnessDefault(40.);
 static PRM_Default strainRatioDefault(0.18);
 static PRM_Default fractureToughnessDefault(15.0);
+static PRM_Default energySpreadDefault(0.3);
+static PRM_Default energyPercentDefault(0.15);
 static PRM_Default forceMagDefault(100.0);
 static PRM_Default forceDirDefault[]{
 	PRM_Default(-1.0),
@@ -101,21 +105,65 @@ static PRM_Default exportFileDefault(0, "out");
 static PRM_Range youngsModulusRange(PRM_RANGE_RESTRICTED, 0.01, PRM_RANGE_RESTRICTED, 1200.0);
 static PRM_Range poissonRange(PRM_RANGE_RESTRICTED, 0.0, PRM_RANGE_RESTRICTED, 0.4999);
 static PRM_Range fractureToughnessRange(PRM_RANGE_RESTRICTED, 10.0, PRM_RANGE_RESTRICTED, 500);
+static PRM_Range energySpreadRange(PRM_RANGE_RESTRICTED, 0.01, PRM_RANGE_RESTRICTED, 2.0);
+static PRM_Range energyPercentRange(PRM_RANGE_RESTRICTED, 0.1, PRM_RANGE_RESTRICTED, 1.0);
 static PRM_Range forceMagRange(PRM_RANGE_RESTRICTED, 1.0, PRM_RANGE_RESTRICTED, 1500.0);
 
 // USE PARAM NAMES AND PARAMS TO INITIALIZE
 
 PRM_Template SOP_CVD::myTemplateList[] = {
 	PRM_Template(
-		PRM_FLT,		// Declare a 3-float parameter
-		3,              // Number of components
-		&boundsName,    // Parameter name
-		boundsDefault),
-	PRM_Template(PRM_FLT, 1, &cellSizeName, &cellSizeDefault),
-	PRM_Template(PRM_FLT, 1, &stiffnessName, &stiffnessDefault, nullptr, &youngsModulusRange),
-	PRM_Template(PRM_FLT, 1, &strainRatioName, &strainRatioDefault, nullptr, &poissonRange),
-	PRM_Template(PRM_FLT, 1, &fractureToughnessName, &fractureToughnessDefault, nullptr, &fractureToughnessRange),
+		PRM_FLT, 
+		1, 
+		&stiffnessName, 
+		&stiffnessDefault, 
+		nullptr, 
+		&youngsModulusRange,
+		nullptr, nullptr, 0,
+		"Ability of the material to withstand deformation under stress. In other words, it is the relationship between applied pressure and distortion.\nHigher values indicate stiffness, and lower values pliability."
+	),
+	PRM_Template(
+		PRM_FLT, 
+		1, 
+		&strainRatioName, 
+		&strainRatioDefault, 
+		nullptr, 
+		&poissonRange,
+		nullptr, nullptr, 0,
+		"Describes the ability of the material to expand in directions perpendicular to direction of pressure.\nHigher values resist distortion, while lower lower values deform easily."
+	),
+	PRM_Template(
+		PRM_FLT, 
+		1, 
+		&fractureToughnessName, 
+		&fractureToughnessDefault, 
+		nullptr, 
+		&fractureToughnessRange,
+		nullptr, nullptr, 0,
+		"Ability of a material to resist crack propagation. When exceeded, crack propagation becomes rapid and unlimited."
+	),
+	PRM_Template(
+		PRM_FLT, 
+		1, 
+		&energySpreadName, 
+		&energySpreadDefault, 
+		nullptr, 
+		&energySpreadRange,
+		nullptr, nullptr, 0,
+		"Controls how far from a facture seed point energy is 'collected' to determine how much energy that fracture will release.\nHigher values generally result in fewer fractures, as energy is consumed faster."
+	),
+	PRM_Template(
+		PRM_FLT, 
+		1, 
+		&energyPercentName, 
+		&energyPercentDefault, 
+		nullptr, 
+		&energyPercentRange,
+		nullptr, nullptr, 0,
+		"Controls cap of how much of total internal energy is released via fractures. Higher values correspond to more fractures."
+	),
 	PRM_Template(PRM_FLT, 1, &forceMagName, &forceMagDefault, nullptr, &forceMagRange),
+	
 	PRM_Template(
 		PRM_FLT,		// Declare a 3-float parameter
 		3,              // Number of components
@@ -236,12 +284,6 @@ SOP_CVD::cookMySop(OP_Context &context)
 	// DECLARE FIELDS FOR PARAMETERS      
     //    NOTE : [ALL-CAPS] is a function that you need to use and it is declared in the header file to update your values instantly while cooking 
 	// NOW THAT WE HAVE HANDLES ON ALL VARIABLES, WE ALSO WILL DO CHECKS AND MAKE SURE THEY STAY IN SAFE RANGES
-	vec3 bounds;
-	bounds = BOUNDS(now);
-
-	float cellSize;
-	cellSize = CELL_SIZE(now);
-
 	float stiffness;
 	stiffness = STIFFNESS(now) * pow(10, 9); // we are inputting Young's Modulus in GPa, need to convert to Pa
 
@@ -250,6 +292,12 @@ SOP_CVD::cookMySop(OP_Context &context)
 
 	float fractureToughness;
 	fractureToughness = FRACTURE_TOUGHNESS(now);
+
+	float energySpread;
+	energySpread = ENERGY_SPREAD(now);
+
+	float energyPercent;
+	energyPercent = ENERGY_PERCENT(now);
 
 	float forceMag;
 	forceMag = FORCE_MAG(now);
@@ -300,30 +348,6 @@ SOP_CVD::cookMySop(OP_Context &context)
 			duplicateSource(0, context, gdp);
 		}
 
-		//draw points
-		/*
-		for (float i = 0; i < voronoiPoints.size(); i++) {
-			for (float j = 0; j < voronoiPoints[i].size(); j++) {
-				for (float k = 0; k < voronoiPoints[i][j].size(); k++) {
-
-					//poly = GU_PrimPoly::build(gdp, 2, GU_POLY_OPEN);
-					GA_Offset ptoff = gdp->appendPoint();
-					vec3 point = voronoiPoints[i][j][k];
-					//DrawVoronoiEdge(gdp, vec3(0, 0, 0), point);
-					gdp->setPos3(ptoff, UT_Vector3(point[0], point[1], point[2]));
-					//GA_Offset p0 = poly->getPointOffset(0);
-					//GA_Offset p1 = poly->getPointOffset(1);
-					
-					//UT_Vector3 start(0, 0, 0);
-					//UT_Vector3 end(point[0], point[1], point[2]);
-					//gdp->setPos3(p0, start);
-					//gdp->setPos3(p1, end);
-				}
-			}
-		}*/
-
-		//DrawVoronoiCells(gdp);
-
 		// ----------------------------------------------------------------------------------
 		// ------------------------ PROCESS OBJECT IN GDP BUFFER ----------------------------
 		// ----------------------------------------------------------------------------------
@@ -334,7 +358,7 @@ SOP_CVD::cookMySop(OP_Context &context)
 		matData->strainRatio = strainRatio;
 		matData->fractureToughness = fractureToughness;
 
-		TetrahedralObject* obj = new TetrahedralObject(std::move(matData));
+		TetrahedralObject* obj = new TetrahedralObject(std::move(matData), energyPercent, energySpread);
 		obj->DumpPoints();
 
 		GA_Iterator primIter(gdp->getPrimitiveRange());

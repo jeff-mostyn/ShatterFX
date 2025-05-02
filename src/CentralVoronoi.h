@@ -62,17 +62,6 @@ namespace HDK_Sample {
 	    // constantly update the cook function, these functions help you get the current value that the node has
 	    // Example : To declare a function to fetch angle you need to do it this way 
 	    // fpreal  ANGLE(fpreal t)     { return evalFloat("angle", 0, t); }
-        fpreal CELL_SIZE(fpreal t) {
-            return evalFloat("cellSize", 0, t);
-        }
-
-        vec3 BOUNDS(fpreal t) {
-            float x = evalFloat("bounds", 0, t);
-            float y = evalFloat("bounds", 1, t);
-            float z = evalFloat("bounds", 2, t);
-            return vec3(x, y, z);
-        }
-
         fpreal STIFFNESS(fpreal t) {
             return evalFloat("stiffness", 0, t);
         }
@@ -83,6 +72,14 @@ namespace HDK_Sample {
         
         fpreal FRACTURE_TOUGHNESS(fpreal t) {
             return evalFloat("fractureToughness", 0, t);
+        }
+
+        fpreal ENERGY_SPREAD(fpreal t) {
+            return evalFloat("energySpread", 0, t);
+        }
+
+        fpreal ENERGY_PERCENT(fpreal t) {
+            return evalFloat("energyConsumptionPercent", 0, t);
         }
 
         fpreal FORCE_MAG(fpreal t) {

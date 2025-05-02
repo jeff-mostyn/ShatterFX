@@ -8,13 +8,19 @@
 // 
 // ------------------------------------------------------------
 
-TetrahedralObject::TetrahedralObject(std::unique_ptr<MaterialData> a_matData) : m_min(FLT_MAX, FLT_MAX, FLT_MAX), m_max(FLT_MIN, FLT_MIN, FLT_MIN)
+TetrahedralObject::TetrahedralObject(
+	std::unique_ptr<MaterialData> a_matData, 
+	float a_energyConsumptionPercent,
+	float a_energySpreadFactor
+) : m_min(FLT_MAX, FLT_MAX, FLT_MAX), m_max(FLT_MIN, FLT_MIN, FLT_MIN)
 {
 	m_tets = std::vector<Tetrahedron *>();
 	// m_min = vec3(FLT_MAX, FLT_MAX, FLT_MAX);
 	// m_max = vec3(FLT_MIN, FLT_MIN, FLT_MIN);
 
 	m_matData = std::move(a_matData);
+	m_energyConsumptionPercent = a_energyConsumptionPercent;
+	m_energySpreadFactor = a_energySpreadFactor;
 	ComputeMaterialMatrix();
 }
 
@@ -276,9 +282,9 @@ void TetrahedralObject::ComputeMaterialInformation() {
 }
 
 std::vector<vec3> TetrahedralObject::GenerateFractureSites(vec3 a_impactPoint) {
-	const int maxSites = 100; // clamp to avoid infinite loop
+	const int maxSites = 50; // clamp to avoid infinite loop
 	std::vector<vec3> sites;
-	float totalEnergy = GetTotalEnergy() * 0.1f;
+	float totalEnergy = GetTotalEnergy() * m_energyConsumptionPercent;
 	float fractureEpislon = 0.005;
 
 	std::cout << "Energy to be spent: " << totalEnergy << std::endl;
@@ -308,7 +314,7 @@ std::vector<vec3> TetrahedralObject::GenerateFractureSites(vec3 a_impactPoint) {
 	// exceed the total energy of the system, but that the fractures that happen are the highest
 	// energy ones
 	float boundingRadius = max(m_max.Length(), m_min.Length());
-	float sigma_global = boundingRadius * 0.3; // affects how far energy spreads from impact
+	float sigma_global = boundingRadius * m_energySpreadFactor; // affects how far energy spreads from impact
 
 	float radiiTotal = 0.f;
 	for (const auto& tet : m_tets) {

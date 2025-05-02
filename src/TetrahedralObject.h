@@ -51,7 +51,7 @@ struct Fracture {
 class TetrahedralObject
 {
 public:
-	TetrahedralObject(std::unique_ptr<MaterialData> a_matData);
+	TetrahedralObject(std::unique_ptr<MaterialData> a_matData, float a_energyConsumptionPercent, float a_energySpreadFactor);
 	~TetrahedralObject();
 
 	// manipulator functions
@@ -80,6 +80,8 @@ public:
 	std::vector<vec3> GenerateFractureSites(vec3 a_impactPoint);
 
 private:
+	float m_energyConsumptionPercent;
+	float m_energySpreadFactor;
 	std::vector<vec3> m_points;
 	std::unordered_map<vec3, int> m_pointIndices;
 	std::vector<Tetrahedron *> m_tets;
