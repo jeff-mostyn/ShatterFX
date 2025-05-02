@@ -104,13 +104,6 @@ namespace HDK_Sample {
             return evalString(_str, "outputFile", 0, t);
         }
 
-        void PopulateVoronoiPoints(vec3 a_bounds, float a_cellSize);
-        vec3 GeneratePerlinNoise(vec3 a_cell);
-        vec3 Noise3D(vec3 a_cell);
-        const void PrintVoronoiPoints();
-        void DrawVoronoiEdge(GU_Detail* gdp, vec3 p1, vec3 p2);
-        void DrawVoronoiCells(GU_Detail* gdp);
-
         // Export Fractured Mesh
         static int ExportCallback(void* data, int index,
             float time, const PRM_Template*);

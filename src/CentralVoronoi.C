@@ -60,8 +60,6 @@ newSopOperator(OP_OperatorTable *table)
 
 // DECLARE PARAMETERS (arg1: internal, arg2: descriptive)
 
-static PRM_Name boundsName("bounds", "Voronoi Region Bounds");
-static PRM_Name cellSizeName("cellSize", "Move Fragments Spacing");
 static PRM_Name stiffnessName("stiffness", "Young's Modulus (GPa)");
 static PRM_Name strainRatioName("strainRatio", "Poisson Ratio");
 static PRM_Name energySpreadName("energySpread", "Energy Spread Factor");
@@ -77,12 +75,6 @@ static PRM_Name explodedViewButtonName("explode", "Explode View");
 
 // SET PARAMETER DEFAULTS
 
-static PRM_Default boundsDefault[]{
-	PRM_Default(1.0),
-	PRM_Default(1.0),
-	PRM_Default(1.0)
-};
-static PRM_Default cellSizeDefault(1.0);
 static PRM_Default stiffnessDefault(40.);
 static PRM_Default strainRatioDefault(0.18);
 static PRM_Default fractureToughnessDefault(15.0);
@@ -111,7 +103,11 @@ static PRM_Range forceMagRange(PRM_RANGE_RESTRICTED, 1.0, PRM_RANGE_RESTRICTED, 
 
 // USE PARAM NAMES AND PARAMS TO INITIALIZE
 
+static PRM_Name materialPropsHeaderName("header_matProps", "Material Properties");
+static PRM_Name forceParamsHeaderName("header_forceParams", "Force Paramters");
+
 PRM_Template SOP_CVD::myTemplateList[] = {
+	PRM_Template(PRM_LABEL, 1, &materialPropsHeaderName),
 	PRM_Template(
 		PRM_FLT, 
 		1, 
@@ -163,7 +159,8 @@ PRM_Template SOP_CVD::myTemplateList[] = {
 		"Controls cap of how much of total internal energy is released via fractures. Higher values correspond to more fractures."
 	),
 	PRM_Template(PRM_FLT, 1, &forceMagName, &forceMagDefault, nullptr, &forceMagRange),
-	
+		
+	PRM_Template(PRM_LABEL, 1, &forceParamsHeaderName),
 	PRM_Template(
 		PRM_FLT,		// Declare a 3-float parameter
 		3,              // Number of components
@@ -310,17 +307,6 @@ SOP_CVD::cookMySop(OP_Context &context)
 
 	vec3 forceLoc;
 	forceLoc = FORCE_LOC(now);
-
-
-	//std::cout << "---------------------------------------------" << std::endl;
-
-	// PROCESS DATA HERE
-
-	//PopulateVoronoiPoints(bounds, cellSize);
-	//PrintVoronoiPoints();
-
-
-	//std::cout << "---------------------------------------------" << std::endl;	
 	
 	// DRAW GEOMETRY
     /* These were all examples, not sure exactly what they doooo*/
@@ -415,7 +401,6 @@ SOP_CVD::cookMySop(OP_Context &context)
 			}
 
 			obj->GenerateFragments(fractureSites);
-			//obj->MoveFragments(cellSize);
 			obj->Draw(gdp);
 			gdp->consolidatePoints(0.001f);
 		}
@@ -431,183 +416,6 @@ SOP_CVD::cookMySop(OP_Context &context)
 	unlockInput(0);
 
     return error();
-}
-
-void SOP_CVD::PopulateVoronoiPoints(vec3 a_bounds, float a_cellSize) {
-	voronoiPoints.clear();
-
-	int xMax = a_bounds[0] / a_cellSize;
-	int yMax = a_bounds[1] / a_cellSize;
-	int zMax = a_bounds[2] / a_cellSize;
-
-	// first we compute points in a range 2 larger in each axis. We will use these to average our approximate centroids.
-	std::vector<std::vector < std::vector<vec3>>> tmpVoronoiPoints;
-	for (float i = 0; i <= xMax+1; i++) {
-		tmpVoronoiPoints.push_back(std::vector<std::vector<vec3>>());
-		for (float j = 0; j <= yMax+1; j++) {
-			tmpVoronoiPoints[i].push_back(std::vector<vec3>());
-			for (float k = 0; k <= zMax+1; k++) {
-				// generate a [0, 1] noise value in the given cell
-				// then scale by cell size to get offset from corner
-				vec3 noiseVal = Noise3D(vec3(i, j, k)) * a_cellSize;
-
-				vec3 node = vec3(a_cellSize * (i - 1.0), a_cellSize * (j - 1.0), a_cellSize * (k - 1.0)) + noiseVal;
-
-				tmpVoronoiPoints[i][j].push_back(node);
-			}
-		}
-	}
-
-	// from the above temp matrix, we will use the average of the current cell and the six in cardinal directions to compute
-	// the approximate centroid. This is in lieu of more expensive methods like Delaunay triangulation or Qhull
-	for (float i = 1; i <= xMax; i++) {
-		voronoiPoints.push_back(std::vector<std::vector<vec3>>());
-		// using i less 1 because we're starting at one higher index to account for larger temp matrix
-		for (float j = 1; j <= yMax; j++) {
-			voronoiPoints[i - 1].push_back(std::vector<vec3>());
-			for (float k = 1; k <= zMax; k++) {
-				vec3 average = (
-					tmpVoronoiPoints[i][j][k] +
-					tmpVoronoiPoints[i+1][j][k] +
-					tmpVoronoiPoints[i-1][j][k] +
-					tmpVoronoiPoints[i][j+1][k] +
-					tmpVoronoiPoints[i][j-1][k] +
-					tmpVoronoiPoints[i][j][k+1]	+ 
-					tmpVoronoiPoints[i][j][k-1] 
-				) / 7.0;
-
-				// using i and j less 1 because we're starting at one higher index to account for larger temp matrix
-				voronoiPoints[i - 1][j - 1].push_back(average);
-			}
-		}
-	}
-}
-
-// This is not range [0-1], gotta work on that
-vec3 SOP_CVD::GeneratePerlinNoise(vec3 a_cell) {
-	UT_Noise noise;
-	noise.setType(UT_Noise::ALLIGATOR); // Set noise type to Perlin
-	noise.setSeed(1234);
-
-	UT_Vector3 noiseVec;
-	UT_Vector3 pos(a_cell[0], a_cell[1], a_cell[2]);
-
-	noise.turbulence(pos, 1.0, noiseVec, 0.7, 1.0);
-
-	std::cout << "Turbulence at position " << pos << ": " << noiseVec << std::endl;
-
-	return vec3(noiseVec.x(), noiseVec.y(), noiseVec.z());
-}
-
-// This is modeled after some glsl shader noise functions
-vec3 SOP_CVD::Noise3D(vec3 a_cell) {
-	vec3 nonFractional = vec3(
-		abs(sin(Dot(a_cell, vec3(343.7, 151.1, 934.2)))),
-		abs(sin(Dot(a_cell, vec3(678.9, 432.1, 342.8)))),
-		abs(sin(Dot(a_cell, vec3(845.3, 473.2, 432.7))))
-	) * 200419.35;
-
-	vec3 fractional = vec3(
-		nonFractional[0] - (long)nonFractional[0],
-		nonFractional[1] - (long)nonFractional[1],
-		nonFractional[2] - (long)nonFractional[2]
-	);
-
-	return fractional;
-}
-
-// prints voronoi points in "slices"
-const void SOP_CVD::PrintVoronoiPoints() {
-	for (float i = 0; i < voronoiPoints.size(); i++) {
-		for (float j = 0; j < voronoiPoints[i].size(); j++) {
-			for (float k = 0; k < voronoiPoints[i][j].size(); k++) {
-
-				std::cout << voronoiPoints[i][j][k] << " ";
-			}
-			std::cout << std::endl;
-		}
-		std::cout << "-----------" << std::endl;
-	}
-}
-
-void SOP_CVD::DrawVoronoiEdge(GU_Detail* gdp, vec3 p1, vec3 p2)
-{
-	GU_PrimPoly* poly = GU_PrimPoly::build(gdp, 2, GU_POLY_OPEN);
-	GA_Offset ptoff1 = poly->getPointOffset(0);
-	GA_Offset ptoff2 = poly->getPointOffset(1);
-
-	gdp->setPos3(ptoff1, UT_Vector3(p1[0], p1[1], p1[2]));
-	gdp->setPos3(ptoff2, UT_Vector3(p2[0], p2[1], p2[2]));
-
-}
-
-void SOP_CVD::DrawVoronoiCells(GU_Detail* gdp) {
-	// For a 3D Voronoi diagram, we need to compute the Delaunay triangulation first
-	// Then construct cells from the dual of that triangulation
-
-	// This is a simplified approach for demonstration
-	for (int i = 0; i < voronoiPoints.size(); i++) {
-		for (int j = 0; j < voronoiPoints[i].size(); j++) {
-			for (int k = 0; k < voronoiPoints[i][j].size(); k++) {
-				vec3 p1 = voronoiPoints[i][j][k];
-
-				// Check all potential neighboring cells in a reasonable radius
-				for (int ni = std::max(0, i - 1); ni <= std::min((int)voronoiPoints.size() - 1, i + 1); ni++) {
-					for (int nj = std::max(0, j - 1); nj <= std::min((int)voronoiPoints[i].size() - 1, j + 1); nj++) {
-						for (int nk = std::max(0, k - 1); nk <= std::min((int)voronoiPoints[i][j].size() - 1, k + 1); nk++) {
-							// Skip self
-							if (i == ni && j == nj && k == nk)
-								continue;
-
-							vec3 p2 = voronoiPoints[ni][nj][nk];
-
-							// Find midpoint between the two points
-							vec3 midpoint = (p1 + p2) * 0.5;
-
-							// Direction from p1 to p2
-							vec3 dir = p2 - p1;
-							float dist = sqrt(dir[0] * dir[0] + dir[1] * dir[1] + dir[2] * dir[2]);
-							dir = dir / dist;  // Normalize
-
-							// For simplicity in this example, we'll just draw short line segments 
-							// at the midpoint perpendicular to the line connecting the two points
-							// In a full implementation, you'd compute intersections of these planes
-
-							// Perpendicular directions (simplified for visualization)
-							vec3 perp1, perp2;
-
-							// Find perpendicular vectors
-							if (fabs(dir[0]) > fabs(dir[1])) {
-								perp1 = vec3(-dir[2], 0, dir[0]);
-							}
-							else {
-								perp1 = vec3(0, -dir[2], dir[1]);
-							}
-
-							float len = sqrt(perp1[0] * perp1[0] + perp1[1] * perp1[1] + perp1[2] * perp1[2]);
-							perp1 = perp1 / len;  // Normalize
-
-							// Cross product for third perpendicular vector
-							perp2[0] = dir[1] * perp1[2] - dir[2] * perp1[1];
-							perp2[1] = dir[2] * perp1[0] - dir[0] * perp1[2];
-							perp2[2] = dir[0] * perp1[1] - dir[1] * perp1[0];
-
-							// Draw a small "cross" at the midpoint to visualize the cell boundary
-							float edgeLength = dist * 0.25;  // Adjust size as needed
-
-							vec3 edge1Start = midpoint - perp1 * edgeLength;
-							vec3 edge1End = midpoint + perp1 * edgeLength;
-							DrawVoronoiEdge(gdp, edge1Start, edge1End);
-
-							vec3 edge2Start = midpoint - perp2 * edgeLength;
-							vec3 edge2End = midpoint + perp2 * edgeLength;
-							DrawVoronoiEdge(gdp, edge2Start, edge2End);
-						}
-					}
-				}
-			}
-		}
-	}
 }
 
 int SOP_CVD::ExportCallback(void* data, int index,
