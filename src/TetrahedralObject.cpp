@@ -518,15 +518,6 @@ void TetrahedralObject::ComputeCVD(std::vector<vec3>& sites, int iterations) {
 }
 
 Eigen::VectorXf TetrahedralObject::SolveFEM(const Eigen::VectorXf& a_Force) {
-	//std::cout << "Stiffness matrix (first 10 rows and columns): " << std::endl;
-	/*for (int i = 0; i < 10; ++i) {
-		for (int j = 0; j < 10; ++j) {
-			std::cout << m_globalStiffness.coeff(i, j) << " ";
-		}
-		std::cout << std::endl;
-	}*/
-	//std::cout << "Force vector: " << a_Force.transpose() << std::endl;
-
 	Eigen::SparseLU<Eigen::SparseMatrix<float>> solver;
 	solver.analyzePattern(m_globalStiffness);
 	solver.factorize(m_globalStiffness);
