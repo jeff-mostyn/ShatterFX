@@ -23,6 +23,7 @@
 #include <limits.h>
 #include "CentralVoronoi.h"
 #include "ImpactPoint.h"
+#include "exportNode.h"
 #include "TetrahedralObject.h"
 using namespace HDK_Sample;
 
@@ -55,6 +56,16 @@ newSopOperator(OP_OperatorTable *table)
 			1,				// Min # of sources
 			1,				// Max # of sources
 			SOP_Impact::myVariables,	// Local variables
+			OP_FLAG_GENERATOR)		// Flag it as generator
+	);
+	table->addOperator(
+		new OP_Operator("ExportNode",			// Internal name
+			"ExportData",						// UI name
+			SOP_Export::myConstructor,	// How to build the SOP
+			SOP_Export::myTemplateList,	// My parameters
+			1,				// Min # of sources
+			1,				// Max # of sources
+			SOP_Export::myVariables,	// Local variables
 			OP_FLAG_GENERATOR)		// Flag it as generator
 	);
 }
@@ -383,12 +394,6 @@ SOP_CVD::cookMySop(OP_Context &context)
 		// flush gdp to render our stuff
 		gdp->clearAndDestroy();
 
-		std::cout << "-----------" << std::endl;
-
-		std::cout << "set size: " << obj->GetPointsSingleton().size() << std::endl;
-
-		std::cout << "-----------" << std::endl;
-
 		// Compute all information to generate voronoi points and whatnot
 		obj->ComputeMaterialInformation();
 		obj->RegisterImpact(forceDir, forceMag, forceLoc);
@@ -405,7 +410,6 @@ SOP_CVD::cookMySop(OP_Context &context)
 
 			obj->GenerateFragments(fractureSites);
 			obj->Draw(gdp);
-			gdp->consolidatePoints(0.001f);
 		}
 
 		delete obj;
@@ -434,6 +438,31 @@ int SOP_CVD::ExportCallback(void* data, int index,
 	// Get Parent Network
 	OP_Network* parent = (OP_Network*)(sop->getParent());
 	
+
+	// ---------------------------------------------------------
+	//			Create ExportData Node or Assign Existing One
+	// ---------------------------------------------------------
+	OP_Node* exportNode;
+	OP_Node* exportNodeExisting = parent->findNode("ExportNode1");
+
+	// Create or Assign Existing Node
+	if (!exportNodeExisting) {
+		exportNode = parent->createNode("ExportNode", "ExportNode1");
+	}
+	else {
+		exportNode = exportNodeExisting;
+	}
+
+	// if success, set node up and cook it
+	if (exportNode) {
+		// Set input as CVD Fracture Geometry
+		if (sop) {
+			exportNode->setInput(0, sop);
+			exportNode->moveToGoodPosition();
+			exportNode->forceRecook();
+		}
+	}
+
 
 	// ---------------------------------------------------------
 	//			Create File Node or Assign Existing One
@@ -466,8 +495,8 @@ int SOP_CVD::ExportCallback(void* data, int index,
 		fileNode->setString(fullPath, CH_STRING_LITERAL, "file", 0, time);
 
 		// Set input as CVD Fracture Geometry
-		if (sop) {
-			fileNode->setInput(0, sop);
+		if (exportNode) {
+			fileNode->setInput(0, exportNode);
 			fileNode->moveToGoodPosition();
 			fileNode->forceRecook();
 		}

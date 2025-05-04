@@ -173,8 +173,6 @@ void TetrahedralObject::RegisterImpact(vec3 a_dir, float a_mag, vec3 a_location)
 	// Compute vector of vertex displacements
 	m_pointDisplacementVector = SolveFEM(f_global);
 
-	//std::cout << "Displacements (first few): " << m_pointDisplacementVector.head(10).transpose() << std::endl;
-
 	for (Tetrahedron* tet : m_tets) {
 		tet->ComputeStrainTensor();
 		tet->ComputeStrainEnergy();
@@ -220,8 +218,6 @@ std::vector<vec3> TetrahedralObject::GenerateFractureSites(vec3 a_impactPoint) {
 	std::vector<vec3> sites;
 	float totalEnergy = GetTotalEnergy() * m_energyConsumptionPercent;
 	float fractureEpislon = 0.005;
-
-	std::cout << "Energy to be spent: " << totalEnergy << std::endl;
 
 	// Step 1: Sample initial sites using weighted energy distribution
 	std::list<Fracture> candidates;
@@ -308,11 +304,9 @@ std::vector<vec3> TetrahedralObject::GenerateFractureSites(vec3 a_impactPoint) {
 	// pare "extra energy" fractures if any exist
 	float contributedEnergy = 0;
 	for (int i = 0; i < sortedCandidates.size(); i++) {
-		std::cout << "Energy expenditure [" << i << "]: " << sortedEnergies[i] << std::endl;
 		// if total contributed energy plus energy of next fracture is less than the total
 		// system energy, add the current fracture to the sites
 		if (contributedEnergy + sortedEnergies[i] <= totalEnergy && sortedEnergies[i] > fractureEpislon) {
-			std::cout << "Energy spent!" << std::endl;
 			sites.push_back(sortedCandidates[i]);
 			contributedEnergy += sortedEnergies[i];
 		}

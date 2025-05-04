@@ -365,13 +365,6 @@ int SOP_Impact::ExportCallback(void* data, int index,
 	// ---------------------------------------------------------
 	if (!fileNodeExisting) {
 		fileNode = parent->createNode("file", "shatterExportFile1");
-
-		if (!fileNode) {
-			std::cout << "Failed to fuse node!" << std::endl;
-		}
-		else {
-			std::cout << "Successfully created fuse node." << std::endl;
-		}
 	}
 	else {
 		fileNode = fileNodeExisting;
@@ -384,7 +377,6 @@ int SOP_Impact::ExportCallback(void* data, int index,
 
 		PRM_Parm* filemodeParm = &fileNode->getParm("filemode");
 		if (filemodeParm != nullptr) {
-			std::cout << "setting filemode param" << std::endl;
 			fileNode->setInt("filemode", 0, time, 2);
 		}
 
