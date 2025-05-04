@@ -181,36 +181,6 @@ void TetrahedralObject::RegisterImpact(vec3 a_dir, float a_mag, vec3 a_location)
 	}
 }
 
-void TetrahedralObject::GenerateFragments(float cellSize)
-{
-	m_frags.clear();
-
-	// Map to group tetrahedra by their voxel grid cell
-	std::unordered_map<std::string, TetFragment*> cellToFragment;
-
-	for (Tetrahedron* tet : m_tets)
-	{
-		vec3 center = tet->GetCenterOfMass();
-
-		// Snap to grid
-		int cx = static_cast<int>((center[0] - m_min[0]) / cellSize);
-		int cy = static_cast<int>((center[1] - m_min[1]) / cellSize);
-		int cz = static_cast<int>((center[2] - m_min[2]) / cellSize);
-
-		// Create a unique key for this grid cell
-		std::string key = std::to_string(cx) + "_" + std::to_string(cy) + "_" + std::to_string(cz);
-
-		if (cellToFragment.find(key) == cellToFragment.end())
-		{
-			cellToFragment[key] = new TetFragment();
-			m_frags.push_back(cellToFragment[key]);
-		}
-
-		cellToFragment[key]->m_tets.push_back(tet);
-	}
-
-}
-
 void TetrahedralObject::GenerateFragments(std::vector<vec3> sites) {
 	m_frags.clear();
 
@@ -238,42 +208,6 @@ void TetrahedralObject::GenerateFragments(std::vector<vec3> sites) {
 		cellToFragment[closest]->m_tets.push_back(tet);
 	}
 
-}
-
-void TetrahedralObject::MoveFragments(float distanceFromCenter)
-{
-	// Step 1: Compute center of the full mesh
-	vec3 objectCenter = 0.5f * (m_min + m_max);
-
-	// Step 2: Loop through fragments
-	for (TetFragment* frag : m_frags)
-	{
-		// Compute average center of all tets in the fragment
-		vec3 fragCenter = vec3Zero;
-		int count = 0;
-		for (Tetrahedron* tet : frag->m_tets)
-		{
-			fragCenter += tet->GetCenterOfMass();
-			count++;
-		}
-		if (count == 0) continue;
-		fragCenter /= static_cast<float>(count);
-
-		// Step 3: Compute direction from object center to fragment center
-		vec3 direction = fragCenter - objectCenter;
-		float length = direction.Length();
-		if (length == 0.0f) continue; // Prevent divide by zero
-		direction /= length; // Normalize
-
-		// Step 4: Move each point in the fragment
-		for (Tetrahedron* tet : frag->m_tets)
-		{
-			for (vec3& pt : tet->m_points)
-			{
-				pt += direction * distanceFromCenter;
-			}
-		}
-	}
 }
 
 void TetrahedralObject::ComputeMaterialInformation() {

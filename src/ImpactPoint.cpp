@@ -52,7 +52,7 @@ static PRM_Default forceLocDefault[]{
 static PRM_Default exportFileDefault(0, "out");
 
 // DECLARE PARAMETER RANGES
-static PRM_Range forceMagRange(PRM_RANGE_RESTRICTED, 1.0, PRM_RANGE_RESTRICTED, 250000.0);
+static PRM_Range forceMagRange(PRM_RANGE_RESTRICTED, 1.0, PRM_RANGE_RESTRICTED, 1500.0);
 
 // USE PARAM NAMES AND PARAMS TO INITIALIZE
 

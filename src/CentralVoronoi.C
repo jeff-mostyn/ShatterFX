@@ -667,32 +667,6 @@ int SOP_CVD::PhysicsSimCallback(void* data, int index,
 
 
 	// ---------------------------------------------------------
-	//			Create Transform Node or Assign Existing One
-	// ---------------------------------------------------------
-	OP_Node* transformNode;
-	OP_Node* transformNodeExisting = parent->findNode("coneTransform");
-
-	// Create or Assign Existing Node
-	if (!transformNodeExisting) {
-		transformNode = parent->createNode("xform", "coneTransform");
-	}
-	else {
-		transformNode = transformNodeExisting;
-	}
-
-	// if success, set node up and cook it
-	if (transformNode) {
-		// Set up parameters
-		
-		// Set transform node input to blast node
-		if (blastNode) {
-			transformNode->setInput(0, blastNode);
-			transformNode->moveToGoodPosition();
-			transformNode->forceRecook();
-		}
-	}
-
-	// ---------------------------------------------------------
 	//			Create RBD Solver Node or Assign Existing One
 	// ---------------------------------------------------------
 	OP_Node* rbdNode;
@@ -734,8 +708,8 @@ int SOP_CVD::PhysicsSimCallback(void* data, int index,
 		}
 
 		// Set input 3 to transform node to get cone collision geometry and any animation key framed
-		if (transformNode) {
-			rbdNode->setInput(3, transformNode);
+		if (blastNode) {
+			rbdNode->setInput(3, blastNode);
 		}
 
 		rbdNode->moveToGoodPosition();
