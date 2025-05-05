@@ -524,6 +524,31 @@ int SOP_CVD::PhysicsSimCallback(void* data, int index,
 	
 
 	// ---------------------------------------------------------
+	//			Create Fuse Node or Assign Existing One
+	// ---------------------------------------------------------
+	// Create or Assign Existing Node
+	OP_Node* fuseNode;
+	OP_Node* fuseNodeExisting = parent->findNode("fuse1");
+
+	if (!fuseNodeExisting) {
+		fuseNode = parent->createNode("fuse::2.0", "fuse1");
+	}
+	else {
+		fuseNode = fuseNodeExisting;
+	}
+
+	// if success, set node up and cook it
+	if (fuseNode) {
+		// Set input to CVD fracture node
+		if (fractureNode) {
+			fuseNode->setInput(0, fractureNode);
+			fuseNode->moveToGoodPosition();
+			fuseNode->forceRecook();
+		}
+	}
+
+
+	// ---------------------------------------------------------
 	//			Create Fracture Group Node or Assign Existing One
 	// ---------------------------------------------------------
 	// Create or Assign Existing Node
@@ -548,8 +573,8 @@ int SOP_CVD::PhysicsSimCallback(void* data, int index,
 		}
 
 		// Set input to CVD fracture node
-		if (fractureNode) {
-			groupNode->setInput(0, fractureNode);
+		if (fuseNode) {
+			groupNode->setInput(0, fuseNode);
 			groupNode->moveToGoodPosition();
 			groupNode->forceRecook();
 		}
