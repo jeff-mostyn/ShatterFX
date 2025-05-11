@@ -217,23 +217,7 @@ SOP_CVD::evalVariableValue(fpreal &val, int index, int thread)
 {
     // myCurrPoint will be negative when we're not cooking so only try to
     // handle the local variables when we have a valid myCurrPoint index.
-    /*
-	if (myCurrPoint >= 0) {
-	// Note that "gdp" may be null here, so we do the safe thing
-	// and cache values we are interested in.
-		switch (index)
-		{
-			case VAR_PT:
-				val = (fpreal) myCurrPoint;
-				return true;
-			case VAR_NPT:
-				val = (fpreal) myTotalPoints;
-				return true;
-			default:
-			// do nothing ;
-		}
-    }
-	*/
+
     // Not one of our variables, must delegate to the base class.
     return SOP_Node::evalVariableValue(val, index, thread);
 }
@@ -391,9 +375,6 @@ SOP_CVD::cookMySop(OP_Context &context)
 			}
 		}
 
-		// flush gdp to render our stuff
-		gdp->clearAndDestroy();
-
 		// Compute all information to generate voronoi points and whatnot
 		obj->ComputeMaterialInformation();
 		obj->RegisterImpact(forceDir, forceMag, forceLoc);
@@ -401,6 +382,9 @@ SOP_CVD::cookMySop(OP_Context &context)
 		vector<vec3> fractureSites = obj->GenerateFractureSites(forceLoc);
 
 		if (fractureSites.size() > 0) {
+			// flush gdp to render our stuff
+			gdp->clearAndDestroy();
+
 			// try to draw generated points
 			for (float i = 0; i < fractureSites.size(); i++) {
 				GA_Offset ptoff = gdp->appendPoint();
@@ -410,6 +394,9 @@ SOP_CVD::cookMySop(OP_Context &context)
 
 			obj->GenerateFragments(fractureSites);
 			obj->Draw(gdp);
+		}
+		else {
+			std::cout << "Impact failed to meet fragment generation criteria. Try readjusting force and energy parameters" << std::endl;
 		}
 
 		delete obj;
